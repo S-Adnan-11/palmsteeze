@@ -6,7 +6,7 @@ test('customer preview: filters, quote, keyboard, mobile layout and accessibilit
   const errors: string[] = [];
   page.on('pageerror',(error) => errors.push(error.name));
   await page.goto('/');
-  await expect(page.getByRole('heading',{level:1})).toHaveText('Find your space.Set your pace.');
+  await expect(page.getByRole('heading',{level:1})).toHaveText('Find yourwork rhythm.');
   await expect(page.getByText('Preview inventory · Sample prices. Live availability is not connected.')).toBeVisible();
   await expect(page.locator('.space-card')).toHaveCount(5);
   await page.getByRole('button',{name:'Meeting rooms',exact:true}).click();

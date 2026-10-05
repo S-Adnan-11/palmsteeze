@@ -64,11 +64,19 @@ test('admin decisions real refunds pending failure recovery spaces closures audi
  await signIn(context,users[1]);const customer=await browser.newContext({baseURL:origin});const customerPage=await customer.newPage();await signIn(customer,users[0]);const anon=await browser.newContext({baseURL:origin});
  const action=async(data:Record<string,unknown>)=>context.request.post('/api/admin/actions',{headers,data});
  try {
+  mkdirSync('docs/screenshots/m4-v2',{recursive:true});
+  async function prepareCapture(target:Page) {
+   await target.evaluate(()=>{document.documentElement.style.scrollBehavior='auto';if(document.activeElement instanceof HTMLElement)document.activeElement.blur();window.scrollTo(0,0);});
+   await expect.poll(()=>target.evaluate(()=>window.scrollY)).toBe(0);await target.evaluate(()=>document.fonts.ready);
+   const a11y=await new AxeBuilder({page:target}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();expect(a11y.violations.map(v=>v.id)).toEqual([]);
+   expect(await target.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);
+  }
+  await customerPage.goto('/account');await expect(customerPage.getByRole('heading',{name:'Your next good workday awaits.'})).toBeVisible();await prepareCapture(customerPage);await customerPage.screenshot({path:`docs/screenshots/m4-v2/customer-empty-${info.project.name}.png`,fullPage:true,animations:'disabled',mask:[customerPage.getByTestId('customer-identity')],maskColor:'#D9DFD4'});
   expect((await customer.request.post('/api/admin/actions',{headers,data:{operation:'hours',opensHour:8,closesHour:20,reason:'forged admin'}})).status()).toBe(403);
   expect((await anon.request.post('/api/admin/actions',{headers,data:{}})).status()).toBe(401);
   expect((await customer.request.get('/admin')).status()).toBe(404);expect((await context.request.post('/api/admin/actions',{headers:{Origin:'https://evil.example'},data:{}})).status()).toBe(403);
   expect((await context.request.post('/api/admin/actions',{headers:{...headers,Authorization:'Bearer invalid'},data:{}})).status()).toBe(401);
-  await page.goto('/admin');await expect(page.getByRole('heading',{name:'Your workspace, in view.'})).toBeVisible();expect((await context.request.get('/admin')).headers()['cache-control']).toContain('no-store');
+  await page.goto('/admin');await expect(page.getByRole('heading',{name:'A clear view of today.'})).toBeVisible();expect((await context.request.get('/admin')).headers()['cache-control']).toContain('no-store');
   evidence.serverAndDatabaseAssignedAdmin='PASSED';
   const resource=(await db.query("select * from public.resources where code='OPEN-11'")).rows[0];const date=initialBookingDate(new Date(Date.now()+21*86400000));
   resourceOriginal={id:resource.id,active:resource.active};
@@ -86,13 +94,17 @@ test('admin decisions real refunds pending failure recovery spaces closures audi
   for(let i=0;i<variants.length;i++) {
    const variant=variants[i];const selected={...selection,hour:10+i*2};await customerPage.goto(visitDestination(selected));
    const expectedAmount=variant.kind==='pending' ? 100001:variant.kind==='full' ? 200000:80000;
-   if(variant.kind==='pending'){await customerPage.getByLabel('Amount to pay now').selectOption('higher');await customerPage.getByLabel('Payment amount in naira').fill('1000.01');}
+   if(variant.kind==='pending'){await customerPage.getByLabel('Amount to pay now').selectOption('higher');await customerPage.getByLabel('Payment amount in naira').fill('799.99');await expect(customerPage.getByRole('button',{name:'Reserve with sandbox payment'})).toBeDisabled();await prepareCapture(customerPage);await customerPage.screenshot({path:`docs/screenshots/m4-v2/payment-invalid-disabled-${info.project.name}.png`,fullPage:true,animations:'disabled'});await customerPage.getByLabel('Payment amount in naira').fill('1000.01');}
    if(variant.kind==='full') await customerPage.getByLabel('Amount to pay now').selectOption('full');
    await customerPage.screenshot({path:`docs/screenshots/m3-payment-choice-${info.project.name}.png`,fullPage:true});
+   if(variant.kind==='full') {await prepareCapture(customerPage);await customerPage.screenshot({path:`docs/screenshots/m4-v2/payment-review-full-${info.project.name}.png`,fullPage:true,animations:'disabled'});}
    const promise=customerPage.waitForResponse(r=>r.url().endsWith('/api/checkout')&&r.request().method()==='POST');await customerPage.getByRole('button',{name:'Reserve with sandbox payment'}).click();const result=await promise;expect([201,202]).toContain(result.status());const detail=await result.json();if(result.status()===202) expect(detail.payment.state).toBe('creating');const id=detail.booking.id;bookingIDs.push(id);expect(detail.payment.amount_kobo).toBe(expectedAmount);expect(detail.booking.deposit_kobo).toBe(80000);expect(detail.booking.balance_kobo).toBe(120000);
    await expect(customerPage).toHaveURL(new RegExp(`/booking/${id}`));await expect(customerPage.getByRole('link',{name:'Continue to secure Stripe sandbox checkout'})).toBeVisible({timeout:90000});await pay(customerPage,variant.card);
    const verified=(await db.query('select amount_kobo,collected_kobo,refunded_kobo,payment_intent_id from public.payment_attempts where booking_id=$1',[id])).rows[0];expect(Number(verified.collected_kobo)).toBe(expectedAmount);await expect(customerPage.locator('.quote-summary')).toContainText(variant.kind==='pending'?'₦1,000.01':variant.kind==='full'?'₦2,000':'₦800');
    if(variant.kind==='full') {
+    await customerPage.goto('/account');await prepareCapture(customerPage);await customerPage.screenshot({path:`docs/screenshots/m4-v2/customer-bookings-${info.project.name}.png`,fullPage:true,animations:'disabled',mask:[customerPage.getByTestId('customer-identity')],maskColor:'#D9DFD4'});await customerPage.goto(`/booking/${id}`);
+    await page.goto('/admin');await page.getByLabel('Search bookings',{exact:true}).fill(users[0].email);await expect(page.getByRole('list',{name:'Bookings'}).getByRole('listitem')).toHaveCount(3);await prepareCapture(page);await page.screenshot({path:`docs/screenshots/m4-v2/admin-real-overview-${info.project.name}.png`,fullPage:true,animations:'disabled',mask:[page.locator('.metric-card > strong'),page.locator('.metric-accent > p'),page.locator('.operation-note > strong'),page.locator('.attention-panel h3'),page.locator('.attention-amount'),page.locator('.day-operations strong'),page.locator('.list-note')],maskColor:'#D9DFD4'});
+    evidence.redesignScreenshots='Actual authenticated app with isolated synthetic customer; real overview filtered to three run-owned records, stored aggregate figures masked. No invented live metrics.';
     // Actual prior partial refund on this run-owned full-payment charge. This
     // is a provider fixture, not a customer partial-refund product feature.
     const prior=await stripe.refunds.create({payment_intent:verified.payment_intent_id,amount:20000,metadata:{palmsteeze_fixture:'prior-partial'}},{idempotencyKey:`palmsteeze-m3-prior-partial-${id}`});expect(prior.status).toBe('succeeded');
@@ -167,7 +179,7 @@ test('admin decisions real refunds pending failure recovery spaces closures audi
   await page.goto('/admin/availability');await page.screenshot({path:`docs/screenshots/m3-availability-${info.project.name}.png`,fullPage:true});
   const closureCard=page.locator('section.admin-card').filter({has:page.getByText('Isolated M3 closure',{exact:true})});await closureCard.getByLabel('Reason for remove closure').fill('Isolated closure removal');await closureCard.getByRole('button',{name:'Remove closure'}).click();await expect(closureCard).toContainText('Removed');
   expect((await action({operation:'removeClosure',closureId:closureID,reason:'Repeated isolated closure removal'})).status()).toBe(200);
-  await page.goto('/admin/spaces');await page.getByText(`${resource.name} · ${resource.code} · Active`,{exact:true}).click();await expect(page.locator('details[open]').getByLabel('Resource name')).toHaveValue(resource.name);
+  await page.goto('/admin/spaces');await page.locator('details.resource-detail').filter({hasText:resource.code}).locator('summary').click();await expect(page.locator('details[open]').getByLabel('Resource name')).toHaveValue(resource.name);
   const resourceCard=page.locator('details[open]');
   for(const active of ['false','true']) {await resourceCard.getByLabel('Resource status').selectOption(active);await resourceCard.getByLabel('Reason for save resource').fill(active==='false' ? 'Isolated archive after allocations cancelled':'Restore isolated resource');const resultPromise=page.waitForResponse(r=>r.url().endsWith('/api/admin/actions')&&r.request().method()==='POST');await resourceCard.getByRole('button',{name:'Save resource'}).click();expect((await resultPromise).status()).toBe(200);}
   await resourceCard.getByLabel('Hourly price in naira').fill('2300');await resourceCard.getByLabel('Effective date/time (Lagos)').fill(`${date}T08:00`);await resourceCard.getByLabel('Reason for schedule future rate').fill('Isolated future rate');

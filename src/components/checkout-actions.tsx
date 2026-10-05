@@ -32,19 +32,20 @@ export function CreateCheckout({selection,interval,initialQuote,initialAvailable
     } catch(error) {setStatus(error instanceof Error ? error.message:'Please retry safely.');}
     finally {setPending(false);}
   }
-  return <div className="booking-panel"><div className="quote-summary" aria-label="Verified visit quote">
+  return <div className="booking-panel" aria-busy={pending}><p className="eyebrow">Your booking summary</p><div className="quote-summary" aria-label="Verified visit quote">
     <p><span>Booking total</span><strong>{formatMoney(quote.total_kobo)}</strong></p>
     <p><span>{quote.deposit_percent}% deposit</span><strong>{formatMoney(quote.deposit_kobo)}</strong></p>
     <p><span>Balance with minimum deposit</span><span>{formatMoney(quote.balance_kobo)}</span></p></div>
     <label htmlFor="payment-choice">Amount to pay now</label><select id="payment-choice" value={choice} onChange={event=>setChoice(event.target.value)} disabled={pending}>
       <option value="minimum">Minimum deposit ({formatMoney(quote.deposit_kobo)})</option><option value="higher">Choose a higher amount</option><option value="full">Full payment ({formatMoney(quote.total_kobo)})</option></select>
-    {choice==='higher'&&<><label htmlFor="payment-naira">Payment amount in naira</label><input id="payment-naira" inputMode="decimal" type="text" value={custom} onChange={event=>setCustom(event.target.value)} disabled={pending}/></>}
+    {choice==='higher'&&<><label htmlFor="payment-naira">Payment amount in naira</label><input id="payment-naira" inputMode="decimal" type="text" value={custom} onChange={event=>setCustom(event.target.value)} disabled={pending} aria-describedby="payment-range" aria-invalid={custom.length>0&&!validAmount}/><p id="payment-range" className="payment-range">Enter {formatMoney(quote.deposit_kobo)}–{formatMoney(quote.total_kobo)}. Up to two decimal places.</p></>}
     {validAmount&&<div className="quote-summary"><p><span>Selected payment</span><strong>{formatMoney(selectedAmount!)}</strong></p><p><span>Balance after verified payment</span><strong>{formatMoney(quote.total_kobo-selectedAmount!)}</strong></p></div>}
     {choice==='full'&&<p>No balance remains after verified full payment.</p>}
     <p>Approved cancellations refund the entire amount collected, less any amount already refunded. Cancellation approval and provider-confirmed refund completion are separate.</p>
-    <button className="button" disabled={pending||!initialAvailable} onClick={create}>{pending ? 'Preparing checkout…':'Reserve with sandbox payment'}</button>
-    <p role="status" className="booking-status">{status||(initialAvailable ? 'The database rechecks availability and your reviewed price atomically.':'This space is occupied or closed. Choose another time.')}</p>
-    <p className="signin-note">Sandbox cards only; no real funds. Venue settings and hourly prices remain proposed. The 40% working deposit was approved after payment feasibility testing.</p></div>;
+    <p className="payment-disclosure">Demo workspace. Test payments only. Use a Stripe sandbox card.</p>
+    <button className="button" disabled={pending||!initialAvailable||!validAmount} onClick={create}>{pending ? 'Preparing checkout…':'Reserve with sandbox payment'}</button>
+    <p role="status" className="booking-status">{status||(initialAvailable ? 'Your price and availability are checked again before checkout.':'This space is occupied or closed. Choose another time.')}</p>
+    <p className="signin-note">Your visit is confirmed after payment is verified. Any remaining balance is due at the venue.</p></div>;
 }
 export function CheckoutStatusActions({id,canCancel,initialState}:{id:string;canCancel:boolean;initialState:string}) {
   const router=useRouter();const [pending,setPending]=useState(false);const [status,setStatus]=useState('');

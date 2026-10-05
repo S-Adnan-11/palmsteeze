@@ -81,7 +81,7 @@ test.afterAll(async () => {
 });
 
 test('visitors browse, selected visit survives login gate, callbacks and redirect attacks recover safely',async ({page,request}) => {
-  await page.goto('/');await expect(page.getByText('Connected inventory · Check your date and time for live availability.')).toBeVisible();
+  await page.goto('/');await expect(page.getByText('Choose your space. Check your date and hours above.')).toBeVisible();
   await page.getByLabel('Your space',{exact:true}).selectOption(resource);
   await page.getByLabel('Date',{exact:true}).fill(selection.date);
   await page.getByLabel('Start time · WAT',{exact:true}).selectOption('10');await page.getByLabel('Duration',{exact:true}).selectOption('2');

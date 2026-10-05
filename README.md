@@ -1,10 +1,10 @@
 # PalmSteeze Workspaces
 
-A fictional Lagos coworking venue: 24 desks and three whole meeting rooms, 27 resources / 44 seats. M1/M2/M3 are complete in the development sandbox; M3 uses the owner's approved permanent-refusal exception, preserving actual replacement creation FAILED. M4 is implemented and automatically verified, awaiting owner visual/content review. No Next.js publication, paid service or live-money payment occurred.
+A fictional Lagos coworking venue: 24 desks and three whole meeting rooms, 27 resources / 44 seats. M1/M2/M3 are complete in the development sandbox; M3 uses the owner's approved permanent-refusal exception, preserving actual replacement creation FAILED. Brand Kit v2 is approved. On 5 October 2026 the owner accepted the redesign's current visual direction for progressing to M5 after partial screen review. Comprehensive visual and physical-device acceptance remain outstanding. No publication, paid service or live-money payment occurred.
 
-Local review: `http://localhost:3000` (customer browsing), `/preview/admin` (explicitly synthetic/read-only), `/portfolio` (architecture explanation). [M4 review](docs/M4_PRESENTATION.md), [architecture](docs/ARCHITECTURE.md), [original asset provenance](docs/ASSETS.md). Public demo/captures contain no real customer/admin identity. Hosting remains M5.
+Local review: `http://localhost:3000` (customer browsing), `/preview/admin` (explicitly synthetic/read-only), `/portfolio` (architecture explanation). [M4 review and screenshots](M4_REDESIGN_REVIEW.md), [architecture](docs/ARCHITECTURE.md), [asset provenance](ASSET_PROVENANCE.md). Public demo/captures contain no real customer/admin identity. Hosting remains M5.
 
-Hours, desk split, room names, rates and visual choices remain **proposed configurable working defaults**. The owner explicitly approved the **40% working deposit** after Stripe rejected the original NGN 600 minimum. New deposits start at NGN 800; original customer bookings retain their 30% snapshots. Money storage/calculation/provider amounts are integer kobo; all monetary displays and entry use naira. Initial payment can be minimum deposit, a higher amount or full price; approval returns the entire collected payment less prior refunds. Historical snapshots remain intact. Time is Africa/Lagos.
+Hours, desk split, room names and rates remain **proposed configurable working defaults**. Brand Kit v2 logo family, palette and typography are owner-approved. The owner explicitly approved the **40% working deposit** after Stripe rejected the original NGN 600 minimum. New deposits start at NGN 800; original customer bookings retain their 30% snapshots. Money storage/calculation/provider amounts are integer kobo; all monetary displays and entry use naira. Initial payment can be minimum deposit, a higher amount or full price; approval returns the entire collected payment less prior refunds. Historical snapshots remain intact. Time is Africa/Lagos.
 
 Actual hosted payment, natural signed webhook, authoritative confirmation, full sandbox refund and unattended protected recovery passed. Read [checkout/recovery flow and key files](docs/M2_CUSTOMER_CHECKOUT.md) and [test results](TEST_REPORT.md). Existing accounts/bookings are preserved; no further M2 account setup is needed.
 
@@ -20,7 +20,7 @@ The explicitly assigned verified owner account can open `/admin` after Google si
 
 Open `http://localhost:3000` in the VM's browser. Use this exact origin for Google sign-in; `127.0.0.1` is the server's bind address but is a different browser origin. The portable Node 24.21.0 runtime is SHA-256 checked against the official manifest and lives in ignored `.tools/`; machine-wide Node is unchanged. The npm wrapper uses its bundled npm 11.19.0, disables Next telemetry, and keeps caches/browser downloads in the workspace. npm's `engine-strict` prevents silently using a different runtime. Direct package pins and `package-lock.json` reproduce dependencies. On other platforms install the exact Node version through your usual version manager and use the equivalent npm commands.
 
-Without Supabase configuration, the page explicitly displays **preview inventory and sample quotes**. It never claims that fixtures are available, creates a fixture booking, or returns simulated live API success. A configured provider failure shows an unavailable state instead of quietly falling back to fixtures. The illustration is original local SVG; no external fonts/images or paid assets.
+Without Supabase configuration, the page explicitly displays **preview inventory and sample quotes**. It never claims that fixtures are available, creates a fixture booking, or returns simulated live API success. A configured provider failure shows an unavailable state instead of quietly falling back to fixtures. The redesign uses self-hosted OFL fonts and six generated fictional interiors, with no remote asset dependency or paid stock. See ASSET_PROVENANCE.md and THIRD_PARTY_NOTICES.md.
 
 ## Private database configuration
 
@@ -134,3 +134,18 @@ Browser smoke uses the installed **Chrome channel** (154.0.8037.59 on this VM) a
 Browser checks select the live suite when `.env.local` contains the public Supabase URL, otherwise the preview suite. Live checks require the migrated/seeded database and test real catalogue reads, availability and authoritative quotes, alongside anonymous rejection and layout/accessibility. `PALMSTEEZE_BROWSER_MODE=unavailable` explicitly selects a separate configured-service failure diagnostic; it cannot establish successful live integration. The original preview checks and screenshots remain preserved. On this managed execution environment, some commands need approved execution outside the sandbox for package downloads, Node user lookup, native compilers or browser subprocesses. That does not require changing AWS infrastructure.
 
 See `TEST_REPORT.md` for actual results and remaining gates. Mocked/preview checks do not substitute for PostgreSQL, genuine Google login, or payment-provider verification.
+
+## M4 Brand Kit v2 redesign
+
+Checkpoint: `0e0becf3286a61e58012cb385f62cc515e2135f6` was verified against GitHub `origin/main` on 5 October 2026. Work continues on `redesign/m4-brand-v2`; no reset or force-push.
+
+The homepage, real admin overview, explorer, review/payment choice, customer history, booking details, administration and six-section synthetic preview use the approved brand. Shared presentation components supply the real/preview sidebar, metrics, searchable booking list and refund obligations. The case study is linked as About this project in the footer; the admin demo is reachable from that project page. The preview remains independently synthetic and read-only. M4 requires owner visual acceptance; hosting remains M5.
+
+Run the complete relevant browser regression after building and freeing port 3000:
+
+```powershell
+$env:PALMSTEEZE_BROWSER_MODE='redesign'
+.\scripts\npm.ps1 run test:browser
+```
+
+This selects live catalogue/access checks, genuine sessions, actual sandbox checkout, administration and visual/state tests. The visual test additionally inspects 360px and 768px widths, focus/reduced motion, empty search, delayed checks, quote errors and unavailable selections. Fault responses in the visual test are controlled browser fixtures, not real provider failures. Current screenshots live under `docs/screenshots/m4-v2/`; reports/docs retain their existing Git exclusions. Authenticated screenshots use run-owned test records; real-admin totals are masked. [Assets and exact prompts](ASSET_PROVENANCE.md), [licences](THIRD_PARTY_NOTICES.md).

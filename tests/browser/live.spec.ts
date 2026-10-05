@@ -7,7 +7,7 @@ test('live PostgreSQL catalogue, availability and authoritative quote reach the 
   const errors: string[] = [];
   page.on('pageerror',(error) => errors.push(error.name));
   await page.goto('/');
-  await expect(page.getByText('Connected inventory · Check your date and time for live availability.')).toBeVisible();
+  await expect(page.getByText('Choose your space. Check your date and hours above.')).toBeVisible();
   await expect(page.getByText('Preview inventory · Sample prices. Live availability is not connected.')).toHaveCount(0);
   await expect(page.locator('.space-card')).toHaveCount(5);
   await expect(page.locator('#resource option')).toHaveCount(27);
@@ -36,7 +36,7 @@ test('live PostgreSQL catalogue, availability and authoritative quote reach the 
   await expect(page.getByLabel('Live server quote')).toContainText('₦6,400');
   await expect(page.locator('.booking-status')).toHaveAttribute('data-available','true');
   await expect(page.locator('.booking-status')).toContainText('Available for these hours.');
-  await expect(page.getByText('Hours and rates are proposed working defaults;', {exact:false})).toBeVisible();
+  await expect(page.getByText('Demo workspace. Test payments only.', {exact:false}).first()).toBeVisible();
   await page.getByRole('button',{name:'All spaces',exact:true}).click();
   await expect(page.locator('.space-card')).toHaveCount(5);
   await page.getByRole('link',{name:'Skip to content'}).focus();

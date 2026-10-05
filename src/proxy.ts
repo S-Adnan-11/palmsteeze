@@ -5,6 +5,10 @@ import { authCookieOptions,privateHeaders } from '@/lib/auth/config';
 
 export async function proxy(request:NextRequest) {
   let response = NextResponse.next({request});
+  // Public demonstrations are fully synthetic and do not refresh or inspect Auth.
+  if (request.nextUrl.pathname === '/preview/admin' || request.nextUrl.pathname === '/portfolio') {
+    privateHeaders(response.headers);return response;
+  }
   // Never accept a user/role header as identity; pages/routes verify with Auth themselves.
   let config:ReturnType<typeof publicConfiguration>;
   try {config = publicConfiguration();} catch {privateHeaders(response.headers);return response;}
@@ -25,4 +29,4 @@ export async function proxy(request:NextRequest) {
   }
   privateHeaders(response.headers);return response;
 }
-export const config = {matcher:['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)']};
+export const config = {matcher:['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|woff|woff2)$).*)']};

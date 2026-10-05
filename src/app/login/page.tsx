@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation';
 import { customerSession } from '@/lib/supabase/server';
 import { safeDestination } from '@/lib/auth/destinations';
 import { SiteHeader } from '@/components/site-header';
+import Image from 'next/image';
+import {SiteFooter} from '@/components/brand';
 export const dynamic = 'force-dynamic';
 const messages:Record<string,string> = {
   cancelled:'Sign-in was cancelled. Your visit selection is saved; you can try again or keep browsing.',
@@ -16,10 +18,10 @@ export default async function Login({searchParams}:{searchParams:Promise<Record<
   const params = await searchParams;const next = safeDestination(params.next || '/account');
   const session = await customerSession();if (session && next) redirect(next);
   const message = !next ? messages['invalid-destination'] : typeof params.message === 'string' ? messages[params.message] : undefined;
-  return <><SiteHeader/><main id="main" className="customer-page"><p className="eyebrow">Your space, saved for you</p><h1>Welcome to <em>PalmSteeze.</em></h1>
+  return <><SiteHeader/><main id="main" tabIndex={-1} className="customer-page login-page"><aside className="login-brand"><Image src="/brand/v2/secondary-stacked-forest.svg" width={230} height={250} alt="PalmSteeze upright workspace logo"/><h2>A little space.<br/><em>A fresh perspective.</em></h2><p>Room to focus. Space to connect.</p></aside><section className="login-content"><p className="eyebrow">Your space, saved for you</p><h1>Welcome to <em>PalmSteeze.</em></h1>
     <p>Browse freely. Sign in with Google before creating a temporary hold or viewing your visits.</p>
     {message && <p className="auth-notice" role="status">{message}</p>}
     <form action="/auth/sign-in" method="post"><input type="hidden" name="next" value={next || '/account'}/><button className="button" type="submit">Continue with Google <span aria-hidden="true">↗</span></button></form>
     <p className="signin-note">Google shares your basic profile and email. New accounts receive ordinary customer access. No payment is collected.</p>
-    <Link href="/">Keep browsing</Link></main></>;
+    <Link href="/">Keep browsing</Link><p className="payment-disclosure">Fictional venue. Test payments only.</p></section></main><SiteFooter/></>;
 }

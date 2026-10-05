@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "assets": [
+    {
+      "asset": "public/spaces/hero.webp",
+      "prompt": "Use case: photorealistic-natural. Asset: PalmSteeze fictional Lagos coworking website editorial hero, landscape 1536x1024 or wider. Create a premium architectural photograph of an imagined warm daylight work club: a spacious double-height open studio with a large arched window, pale textured plaster, warm walnut shared desks, comfortable deep forest-green chairs, a few elegant indoor palms, subtle woven textiles, terrazzo floor, soft Lagos afternoon light and credible lived-in desk objects but no people. Composition: architectural magazine photograph, from slightly elevated eye level across the studio, no fisheye, exquisite material detail, deep spatial perspective, restrained warm ivory and forest green palette, sunlight creates beautiful leafy shadows. This is the primary hero scene, visually spacious and inviting. No text, signage, branding, logos, watermarks, real venue references or collage. Save final image as a project asset.",
+      "tool": "Built-in image_gen",
+      "date": "2026-10-05",
+      "sourceDimensions": [
+        1536,
+        1024
+      ],
+      "webpQuality": 86
+    },
+    {
+      "asset": "public/spaces/open-studio.webp",
+      "prompt": "Use case: photorealistic-natural. Asset: open-studio interior photograph for PalmSteeze, an explicitly fictional premium Lagos coworking venue. Landscape 1536x1024. An open coworking studio with long shared walnut desks, 6 visible forest green task chairs, tall rectangular windows, a large palm at the edge, pale plaster and warm sunlight, expressive diagonal composition. Do not repeat the hero arched-window composition. Architectural editorial photography, realistic furniture construction and natural materials, refined quiet design, subtle lived-in details, green #173D32 and ivory #F6F3E9 palette with tactile timber, matching one coherent architectural collection. No people, text, logo, signage, watermark, identifiable real venue, collage or grids. A single beautiful room photograph filling the image.",
+      "tool": "Built-in image_gen",
+      "date": "2026-10-05",
+      "sourceDimensions": [
+        1536,
+        1024
+      ],
+      "webpQuality": 86
+    },
+    {
+      "asset": "public/spaces/quiet-studio.webp",
+      "prompt": "Use case: photorealistic-natural. Asset: quiet-studio interior photograph for PalmSteeze, an explicitly fictional premium Lagos coworking venue. Landscape 1536x1024. A serene library-like quiet workspace with individual oak desk niches separated by ribbed timber screens, 4 forest-green ergonomic chairs, soft linen acoustic wall panels and indirect window light, one small palm, more intimate than an open studio. Architectural editorial photography, realistic furniture construction and natural materials, refined quiet design, subtle lived-in details, green #173D32 and ivory #F6F3E9 palette with tactile timber, matching one coherent architectural collection. No people, text, logo, signage, watermark, identifiable real venue, collage or grids. A single beautiful room photograph filling the image.",
+      "tool": "Built-in image_gen",
+      "date": "2026-10-05",
+      "sourceDimensions": [
+        1536,
+        1024
+      ],
+      "webpQuality": 86
+    },
+    {
+      "asset": "public/spaces/cove.webp",
+      "prompt": "Use case: photorealistic-natural. Asset: cove interior photograph for PalmSteeze, an explicitly fictional premium Lagos coworking venue. Landscape 1536x1024. An intimate small meeting room with exactly four sage and forest-green chairs around a round walnut table, a curved pale plaster alcove and a framed abstract terracotta artwork, diffused daylight, a small indoor palm. Warm intimate eye-level photograph. Architectural editorial photography, realistic furniture construction and natural materials, refined quiet design, subtle lived-in details, green #173D32 and ivory #F6F3E9 palette with tactile timber, matching one coherent architectural collection. No people, text, logo, signage, watermark, identifiable real venue, collage or grids. A single beautiful room photograph filling the image.",
+      "tool": "Built-in image_gen",
+      "date": "2026-10-05",
+      "sourceDimensions": [
+        1536,
+        1024
+      ],
+      "webpQuality": 86
+    },
+    {
+      "asset": "public/spaces/grove.webp",
+      "prompt": "Use case: photorealistic-natural. Asset: grove interior photograph for PalmSteeze, an explicitly fictional premium Lagos coworking venue. Landscape 1536x1024. A medium meeting room with exactly six forest-green upholstered chairs around an oval timber table, broad glass doors, delicate vertical wood slats and a large leafy plant, ivory walls, warm daylight. Different room and composition from the round four-person room. Architectural editorial photography, realistic furniture construction and natural materials, refined quiet design, subtle lived-in details, green #173D32 and ivory #F6F3E9 palette with tactile timber, matching one coherent architectural collection. No people, text, logo, signage, watermark, identifiable real venue, collage or grids. A single beautiful room photograph filling the image.",
+      "tool": "Built-in image_gen",
+      "date": "2026-10-05",
+      "sourceDimensions": [
+        1536,
+        1024
+      ],
+      "webpQuality": 86
+    },
+    {
+      "asset": "public/spaces/canopy.webp",
+      "prompt": "Use case: photorealistic-natural. Asset: canopy interior photograph for PalmSteeze, an explicitly fictional premium Lagos coworking venue. Landscape 1536x1024. A generous meeting room with exactly ten dark green chairs around a long rectangular oak conference table, wide rectangular windows, pale textured plaster and an ivory acoustic ceiling, indoor palms, distant soft Lagos greenery, spacious symmetrical perspective. Architectural editorial photography, realistic furniture construction and natural materials, refined quiet design, subtle lived-in details, green #173D32 and ivory #F6F3E9 palette with tactile timber, matching one coherent architectural collection. No people, text, logo, signage, watermark, identifiable real venue, collage or grids. A single beautiful room photograph filling the image.",
+      "tool": "Built-in image_gen",
+      "date": "2026-10-05",
+      "sourceDimensions": [
+        1536,
+        1024
+      ],
+      "webpQuality": 86
+    }
+  ]
+}
