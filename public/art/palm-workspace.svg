@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 620" fill="none">
+<title>Original imagined PalmSteeze workspace</title>
+<defs><linearGradient id="wall" x2="1" y2="1"><stop stop-color="#ede4d1"/><stop offset="1" stop-color="#c8cbb4"/></linearGradient><linearGradient id="glass" x2="0" y2="1"><stop stop-color="#789b8c"/><stop offset="1" stop-color="#e2e5c9"/></linearGradient><linearGradient id="floor" x2="0" y2="1"><stop stop-color="#cebb94"/><stop offset="1" stop-color="#a79878"/></linearGradient><pattern id="grain" width="9" height="9" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r=".5" fill="#635e46" opacity=".12"/></pattern></defs>
+<path fill="url(#wall)" d="M0 0H640V620H0Z"/><path fill="url(#floor)" d="M0 450H640V620H0Z"/><path stroke="#8c8267" stroke-opacity=".25" d="M0 488H640M0 535H640M0 592H640M60 450L4 620M173 450L165 620M285 450L330 620M397 450L496 620M510 450L640 584"/>
+<path d="M40 444V218a136 136 0 0 1 272 0v226Z" fill="#f6edd6"/><path d="M55 436V218a121 121 0 0 1 242 0v218Z" fill="url(#glass)"/>
+<circle cx="221" cy="183" r="46" fill="#e1deae" opacity=".8"/><path d="M55 389C89 332 125 350 167 367C206 299 268 293 297 316V436H55Z" fill="#6c927d" opacity=".8"/><path d="M55 419C129 370 156 431 225 365C262 351 281 380 297 389V436H55Z" fill="#486e57" opacity=".7"/>
+<path d="M176 97V436M55 278H297" stroke="#f6edd6" stroke-width="8"/><path d="M317 1V449" stroke="#adad95" stroke-width="2"/><path d="M311 260L548 449H337L182 284Z" fill="#fcf3d3" opacity=".22"/>
+<path d="M374 85H449V203H374Z" fill="#9b7e57"/><path d="M381 92H442V196H381Z" fill="#e6e1c9"/><path d="M404 183V124M404 146C382 145 388 119 392 119C404 127 404 141 404 146ZM404 162C430 159 435 138 431 134C416 136 410 149 404 162ZM404 134C423 126 423 104 418 104C407 113 404 125 404 134Z" fill="#65816a"/>
+<ellipse cx="315" cy="554" rx="205" ry="34" fill="#665b42" opacity=".16"/><path d="M99 389L379 365L463 397L178 425Z" fill="#ad8960"/><path d="M99 389V403L178 439L463 411V397L178 425Z" fill="#806648"/><path d="M128 411L120 520M432 414L441 526" stroke="#66523b" stroke-width="11"/>
+<path d="M244 313L331 307L342 373L255 379Z" fill="#284139"/><path d="M252 320L325 315L333 367L260 372Z" fill="#b6c7b1"/><path d="M252 381L360 372" stroke="#33473e" stroke-width="7"/><path d="M183 376L217 373L224 379L190 382Z" fill="#e6e1c7"/>
+<path d="M197 359H221V385H197Z" fill="#efead6"/><path d="M220 365C235 365 235 379 220 379" stroke="#efead6" stroke-width="4"/>
+<path d="M233 440C237 416 307 411 320 428L328 494L239 503Z" fill="#214b3b"/><path d="M225 490L318 480C340 479 351 488 346 507L240 518C222 518 216 506 225 490Z" fill="#365d48"/><path d="M246 516L233 577M323 508L339 565" stroke="#34493b" stroke-width="7"/>
+<path d="M539 422V194M539 251C502 207 477 189 464 187M539 281C574 239 604 225 622 221M539 218C550 175 575 149 598 142" stroke="#456643" stroke-width="5"/>
+<path d="M539 234C492 224 451 182 449 158C494 158 527 195 539 234ZM539 258C577 211 611 189 635 196C626 228 586 255 539 258ZM539 212C551 163 585 131 610 128C615 158 579 195 539 212ZM539 292C491 286 460 255 445 235C488 228 521 254 539 292ZM539 196C518 151 517 117 536 99C553 126 556 166 539 196Z" fill="#456f4d"/>
+<path d="M514 422H567L559 487H522Z" fill="#d0ba93"/><path d="M511 422H570" stroke="#ece0c1" stroke-width="7"/><path d="M521 436H561M525 452H559M527 468H557" stroke="#b5a07c" stroke-width="2"/>
+<path d="M332 0V54" stroke="#6c715b" stroke-width="2"/><path d="M293 86C302 32 363 32 372 86Z" fill="#977e56"/><path d="M302 86C319 98 348 98 363 86" stroke="#d8c291" stroke-width="5"/>
+<path d="M0 0H640V620H0Z" fill="url(#grain)"/>
+</svg>

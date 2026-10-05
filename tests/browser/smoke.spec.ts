@@ -1,0 +1,50 @@
+import { test,expect } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
+import { mkdirSync } from 'node:fs';
+
+test('customer preview: filters, quote, keyboard, mobile layout and accessibility',async ({page},info) => {
+  const errors: string[] = [];
+  page.on('pageerror',(error) => errors.push(error.name));
+  await page.goto('/');
+  await expect(page.getByRole('heading',{level:1})).toHaveText('Find your space.Set your pace.');
+  await expect(page.getByText('Preview inventory · Sample prices. Live availability is not connected.')).toBeVisible();
+  await expect(page.locator('.space-card')).toHaveCount(5);
+  await page.getByRole('button',{name:'Meeting rooms',exact:true}).click();
+  await expect(page.locator('.space-card')).toHaveCount(3);
+  await page.getByRole('link',{name:'Plan a visit for Cove'}).click();
+  await expect(page.getByLabel('Your space',{exact:true})).toHaveValue('00000000-0000-4000-8000-000000000025');
+  await page.getByLabel('Duration',{exact:true}).selectOption('2');
+  await expect(page.getByLabel('Sample price estimate')).toContainText('₦16,000');
+  await expect(page.getByLabel('Sample price estimate')).toContainText('₦6,400');
+  await page.getByRole('button',{name:'Preview your visit'}).click();
+  await expect(page.locator('.booking-status')).toContainText('Live availability and reservations are not connected yet.');
+  await page.getByRole('button',{name:'All spaces',exact:true}).click();
+  await expect(page.locator('.space-card')).toHaveCount(5);
+  await page.getByLabel('Your space',{exact:true}).selectOption('00000000-0000-4000-8000-000000000001');
+  await page.getByLabel('Duration',{exact:true}).selectOption('1');
+  await page.evaluate(() => window.scrollTo(0,0));
+  await page.keyboard.press('Control+Home');
+  await page.getByRole('link',{name:'Skip to content'}).focus();
+  await expect(page.getByRole('link',{name:'Skip to content'})).toBeFocused();
+  await page.keyboard.press('Enter');
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
+  expect(overflow).toBe(false);
+  const a11y = await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();
+  expect(a11y.violations.map((v) => ({id:v.id,nodes:v.nodes.length}))).toEqual([]);
+  expect(errors).toEqual([]);
+  await page.locator('body').click({position:{x:5,y:5}});
+  await page.evaluate(() => window.scrollTo(0,0));
+  mkdirSync('docs/screenshots',{recursive:true});
+  await page.screenshot({path:`docs/screenshots/m1-${info.project.name}.png`,fullPage:true,animations:'disabled'});
+});
+
+test('unauthenticated APIs cannot allocate, release, inspect private history or close inventory',async ({request}) => {
+  const headers = {Origin:'http://127.0.0.1:3000'};
+  const hold = await request.post('/api/holds',{headers,data:{ownerId:'forged',role:'admin',price:1}});
+  expect(hold.status()).toBe(401);
+  expect((await request.get('/api/holds')).status()).toBe(401);
+  expect((await request.delete('/api/holds/00000000-0000-4000-8000-000000000001',{headers})).status()).toBe(401);
+  expect((await request.post('/api/closures',{headers,data:{}})).status()).toBe(401);
+  expect((await request.post('/api/holds',{headers:{Origin:'https://untrusted.example'},data:{}})).status()).toBe(403);
+  expect((await request.get('/api/availability?start=2026-10-02T08:00:00Z&end=2026-10-02T09:00:00Z')).status()).toBe(503);
+});

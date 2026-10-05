@@ -1,0 +1,8 @@
+import { adminSnapshot,venueTime } from '@/lib/admin';
+import { AdminAction } from '@/components/admin-action';
+export default async function AdminAvailability() {
+ const s=await adminSnapshot('/admin/availability');return <><h1>Availability & <em>closures.</em></h1><p>Closures share the booking exclusion constraint. Conflicts are rejected with affected records; nothing is silently cancelled.</p>
+ <div className="admin-grid"><section className="admin-card"><h2>Create closure</h2><AdminAction operation="closure" label="Create closure" fields={[{name:'resourceId',label:'Space',type:'select',options:s.resources.filter(r=>r.active).map(r=>({value:r.id,label:r.name}))},{name:'startsAt',label:'Closure start (Lagos)',type:'datetime-local'},{name:'endsAt',label:'Closure end (Lagos)',type:'datetime-local'}]}/></section>
+ <section className="admin-card"><h2>Opening hours</h2><p>Existing open weekdays remain unchanged. Reduced hours must preserve active bookings. New deposits remain {s.settings.deposit_percent}%.</p><AdminAction operation="hours" label="Update hours" fields={[{name:'opensHour',label:'Opening hour (Lagos)',type:'number',value:s.settings.opens_hour},{name:'closesHour',label:'Closing hour (Lagos)',type:'number',value:s.settings.closes_hour}]}/></section></div>
+ <div className="admin-list">{s.closures.map(c=><section className="admin-card" key={c.id}><h2>{s.resources.find(r=>r.id===c.resource_id)?.name}</h2><p>{venueTime(c.starts_at)} to {venueTime(c.ends_at)} · {c.active ? 'Active closure':'Removed'}</p><p>{c.reason}</p>{c.active&&<AdminAction operation="removeClosure" label="Remove closure" fixed={{closureId:c.id}}/>}</section>)}</div></>;
+}
