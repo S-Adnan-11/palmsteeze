@@ -31,7 +31,12 @@ function check(condition:unknown):asserts condition {if(!condition) throw new Wo
 export function paymentHandler(config:PaymentConfig,fetcher:typeof fetch=fetch) {
   check(/^https:\/\/[a-z0-9]{20}\.supabase\.co$/.test(config.supabaseURL));
   check(/^(?:sk_test_|rk_test_|rkcs_test_)/.test(config.stripeKey));
-  check(config.origin==='http://localhost:3000'); // M2 development only; deployment is excluded.
+  // A fixed operator-configured origin controls both return URLs. Never derive
+  // it from caller headers, request URLs or an ephemeral deployment hostname.
+  const origin=new URL(config.origin);
+  check(origin.origin===config.origin && !origin.username && !origin.password
+    && (config.origin==='http://localhost:3000' || (origin.protocol==='https:'
+      && !['localhost','127.0.0.1'].includes(origin.hostname))));
   const rpc=async(name:string,body:unknown)=>{
     const response=await fetcher(`${config.supabaseURL}/rest/v1/rpc/${name}`,{method:'POST',
       headers:{apikey:config.serviceKey,Authorization:`Bearer ${config.serviceKey}`,'Content-Type':'application/json'},

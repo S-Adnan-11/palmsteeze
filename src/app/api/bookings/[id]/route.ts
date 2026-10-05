@@ -1,5 +1,6 @@
 import { authenticatedClient } from '@/lib/supabase/server';
 import { customerBooking } from '@/lib/payments';
+export const maxDuration = 60;
 import { jsonError } from '@/lib/http';
 import { uuidPattern } from '@/lib/domain';
 export async function GET(request:Request,{params}:{params:Promise<{id:string}>}) {

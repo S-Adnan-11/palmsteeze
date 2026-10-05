@@ -1,10 +1,11 @@
 import 'server-only';
+import { appOrigin } from '@/lib/auth/config';
+import { sameConfiguredOrigin } from '@/lib/deployment';
 export function jsonError(message: string, status: number) { return Response.json({error:message},{status}); }
 export function sameOrigin(request: Request) {
-  // Next may normalize request.url to localhost internally; Host retains the incoming authority.
-  const url = new URL(request.url);
-  const host = request.headers.get('host') || url.host;
-  try { return request.headers.get('origin') === new URL(`${url.protocol}//${host}`).origin; }
+  // Hosting can normalize the internal URL's scheme/host. Authorize against
+  // the configured browser origin, never against forwarded caller claims.
+  try { return sameConfiguredOrigin(request,appOrigin()); }
   catch { return false; }
 }
 export function databaseError(code?: string) {

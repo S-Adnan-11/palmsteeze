@@ -1,0 +1,17 @@
+.env*
+.tools/
+.npm-cache/
+.playwright/
+.next/
+.git/
+.local-brand-kit/
+*.zip
+*.log
+*.tsbuildinfo
+docs/
+test-results/
+playwright-report/
+AGENTS.md
+PalmSteeze_Project_Plan.md
+READINESS.md
+TEST_REPORT.md

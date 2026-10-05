@@ -2,6 +2,7 @@ import { authenticatedClient } from '@/lib/supabase/server';
 import { customerBooking } from '@/lib/payments';
 import { sameOrigin,databaseError,jsonError } from '@/lib/http';
 import { exactObject,uuidPattern } from '@/lib/domain';
+export const maxDuration = 60;
 export async function POST(request:Request) {
   if(!sameOrigin(request)) return jsonError('Same-origin request required.',403);
   try {

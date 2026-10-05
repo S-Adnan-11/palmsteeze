@@ -53,7 +53,7 @@ test('live PostgreSQL catalogue, availability and authoritative quote reach the 
 });
 
 test('configured APIs enforce anonymous mutation restrictions and invalid intervals',async ({request}) => {
-  const headers = {Origin:'http://127.0.0.1:3000'};
+  const headers = {Origin:'http://localhost:3000',Host:'localhost:3000'};
   expect((await request.post('/api/holds',{headers,data:{ownerId:'forged',role:'admin',price:1}})).status()).toBe(401);
   expect((await request.get('/api/holds')).status()).toBe(401);
   expect((await request.delete('/api/holds/00000000-0000-4000-8000-000000000001',{headers})).status()).toBe(401);

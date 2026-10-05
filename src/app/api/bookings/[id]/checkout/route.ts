@@ -1,5 +1,6 @@
 import { authenticatedClient } from '@/lib/supabase/server';
 import { customerBooking } from '@/lib/payments';
+export const maxDuration = 60;
 import { jsonError,sameOrigin,databaseError } from '@/lib/http';
 import { uuidPattern } from '@/lib/domain';
 export async function DELETE(request:Request,{params}:{params:Promise<{id:string}>}) {

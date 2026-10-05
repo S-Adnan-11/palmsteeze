@@ -1,11 +1,11 @@
 import { defineConfig,devices } from '@playwright/test';
 import { existsSync } from 'node:fs';
-if (existsSync('.env.local')) process.loadEnvFile('.env.local');
+if (process.env.PALMSTEEZE_BROWSER_MODE !== 'deployment' && existsSync('.env.local')) process.loadEnvFile('.env.local');
 const mode = process.env.PALMSTEEZE_BROWSER_MODE || (process.env.NEXT_PUBLIC_SUPABASE_URL ? 'live' : 'preview');
-if (!['live','preview','unavailable','auth','payments','admin','portfolio','redesign'].includes(mode)) throw new Error('Unsupported browser verification mode.');
+if (!['live','preview','unavailable','auth','payments','admin','portfolio','redesign','deployment'].includes(mode)) throw new Error('Unsupported browser verification mode.');
 export default defineConfig({
   testDir:'./tests/browser',fullyParallel:false,workers:1,timeout:30000,
-  testMatch:mode === 'redesign' ? ['portfolio.spec.ts','redesign.spec.ts','live.spec.ts','auth.spec.ts','payments.spec.ts','admin.spec.ts'] : mode === 'portfolio' ? 'portfolio.spec.ts' : mode === 'admin' ? 'admin.spec.ts' : mode === 'payments' ? 'payments.spec.ts' : mode === 'auth' ? 'auth.spec.ts' : mode === 'live' ? 'live.spec.ts' : mode === 'unavailable' ? 'unavailable.spec.ts' : 'smoke.spec.ts',
+  testMatch:mode === 'deployment' ? 'deployment.spec.ts' : mode === 'redesign' ? ['portfolio.spec.ts','redesign.spec.ts','live.spec.ts','auth.spec.ts','payments.spec.ts','admin.spec.ts'] : mode === 'portfolio' ? 'portfolio.spec.ts' : mode === 'admin' ? 'admin.spec.ts' : mode === 'payments' ? 'payments.spec.ts' : mode === 'auth' ? 'auth.spec.ts' : mode === 'live' ? 'live.spec.ts' : mode === 'unavailable' ? 'unavailable.spec.ts' : 'smoke.spec.ts',
   reporter:[['list'],['html',{open:'never'}]],
   use:{baseURL:'http://127.0.0.1:3000',channel:'chrome',actionTimeout:30000,trace:'retain-on-failure',screenshot:'only-on-failure'},
   projects:[
