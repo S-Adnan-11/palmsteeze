@@ -1,3 +1,4 @@
+import {fixtureCheckout} from './reservation-fixtures';
 import assert from 'node:assert/strict';
 import {randomBytes,randomUUID} from 'node:crypto';
 import {mkdirSync,writeFileSync} from 'node:fs';
@@ -26,13 +27,13 @@ async function main(){
   const expected=Object.fromEntries(['hourly_kobo','total_kobo','deposit_percent','deposit_kobo','balance_kobo'].map(k=>[k,quote[k]]));
   await check('server money bounds reject below above fractional and forged quote with rollback',async()=>{
    const before=(await db.query('select count(*)::int as n from public.bookings where owner_id=$1',[users[0].id])).rows[0].n;
-   for(const amount of [quote.deposit_kobo-1,quote.total_kobo+1,-1,80000.1]){const result=await users[0].api.rpc('begin_checkout',{p_resource:resource,p_start:interval.starts_at,p_end:interval.ends_at,p_request:randomUUID(),p_expected:expected,p_amount:amount});assert.ok(result.error);}
-   const result=await users[0].api.rpc('begin_checkout',{p_resource:resource,p_start:interval.starts_at,p_end:interval.ends_at,p_request:randomUUID(),p_expected:{...expected,total_kobo:1},p_amount:quote.total_kobo});assert.equal(result.error?.code,'P0001');assert.equal((await db.query('select count(*)::int as n from public.bookings where owner_id=$1',[users[0].id])).rows[0].n,before);
+   for(const amount of [quote.deposit_kobo-1,quote.total_kobo+1,-1,80000.1]){const result=await fixtureCheckout(users[0].api,{p_resource:resource,p_start:interval.starts_at,p_end:interval.ends_at,p_request:randomUUID(),p_expected:expected,p_amount:amount});assert.ok(result.error);}
+   const result=await fixtureCheckout(users[0].api,{p_resource:resource,p_start:interval.starts_at,p_end:interval.ends_at,p_request:randomUUID(),p_expected:{...expected,total_kobo:1},p_amount:quote.total_kobo});assert.equal(result.error?.code,'P0001');assert.equal((await db.query('select count(*)::int as n from public.bookings where owner_id=$1',[users[0].id])).rows[0].n,before);
   });
   await check('minimum higher fractional-naira and full choices preserve minimum snapshots and idempotency',async()=>{
    for(const [i,amount] of [quote.deposit_kobo,100001,quote.total_kobo].entries()){
-    const time=intervalFromSelection(date,10+i*2,1);const request=randomUUID();const args={p_resource:resource,p_start:time.starts_at,p_end:time.ends_at,p_request:request,p_expected:expected,p_amount:amount};const made=await users[0].api.rpc('begin_checkout',args);assert.equal(made.error,null);assert.equal(made.data.payment.amount_kobo,amount);assert.equal(made.data.booking.deposit_kobo,quote.deposit_kobo);assert.equal(made.data.booking.balance_kobo,quote.balance_kobo);assert.equal(made.data.booking.deposit_percent,40);
-    assert.equal((await users[0].api.rpc('begin_checkout',args)).data.payment.id,made.data.payment.id);assert.equal((await users[0].api.rpc('begin_checkout',{...args,p_amount:amount===quote.total_kobo?amount-1:amount+1})).error?.code,'22023');
+    const time=intervalFromSelection(date,10+i*2,1);const request=randomUUID();const args={p_resource:resource,p_start:time.starts_at,p_end:time.ends_at,p_request:request,p_expected:expected,p_amount:amount};const made=await fixtureCheckout(users[0].api,args);assert.equal(made.error,null);assert.equal(made.data.payment.amount_kobo,amount);assert.equal(made.data.booking.deposit_kobo,quote.deposit_kobo);assert.equal(made.data.booking.balance_kobo,quote.balance_kobo);assert.equal(made.data.booking.deposit_percent,40);
+    assert.equal((await fixtureCheckout(users[0].api,args)).data.payment.id,made.data.payment.id);assert.equal((await fixtureCheckout(users[0].api,{...args,p_amount:amount===quote.total_kobo?amount-1:amount+1})).error?.code,'22023');
     const lease=randomUUID();owned.push({booking:made.data.booking.id,attempt:made.data.payment.id,lease});await db.query('begin');await db.query("update public.bookings set state='confirmed' where id=$1",[made.data.booking.id]);await db.query("update public.payment_attempts set state='paid',collected_kobo=amount_kobo,payment_intent_id=$2 where id=$1",[made.data.payment.id,`pi_fixture${randomUUID().replaceAll('-','')}`]);await db.query("update private.payment_jobs set lease_token=$2,lease_until=now()+interval '10 minutes' where attempt_id=$1",[made.data.payment.id,lease]);await db.query('commit');
    }
   });

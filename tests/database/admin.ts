@@ -1,3 +1,4 @@
+import {fixtureCheckout} from './reservation-fixtures';
 import assert from 'node:assert/strict';
 import { randomBytes,randomUUID } from 'node:crypto';
 import { mkdirSync,readFileSync,writeFileSync } from 'node:fs';
@@ -36,7 +37,7 @@ async function main() {
   });
   const quote=(await users[0].api.rpc('quote_resource',{p_resource:resource.id,p_start:interval.starts_at,p_end:interval.ends_at})).data;
   const expected=Object.fromEntries(['hourly_kobo','total_kobo','deposit_percent','deposit_kobo','balance_kobo'].map(k=>[k,quote[k]]));
-  const created=await users[0].api.rpc('begin_checkout',{p_resource:resource.id,p_start:interval.starts_at,p_end:interval.ends_at,p_request:randomUUID(),p_expected:expected});assert.equal(created.error,null);const booking=created.data.booking;const attempt=created.data.payment;
+  const created=await fixtureCheckout(users[0].api,{p_resource:resource.id,p_start:interval.starts_at,p_end:interval.ends_at,p_request:randomUUID(),p_expected:expected});assert.equal(created.error,null);const booking=created.data.booking;const attempt=created.data.payment;
   await db.query('begin');await db.query("update public.bookings set state='confirmed' where id=$1",[booking.id]);await db.query("update public.payment_attempts set state='paid',payment_intent_id=$2 where id=$1",[attempt.id,`pi_fixture${randomUUID().replaceAll('-','')}`]);await db.query("update private.payment_jobs set lease_token=$2,lease_until=now()+interval '10 minutes' where attempt_id=$1",[attempt.id,randomUUID()]);await db.query('commit');
   const cancellation=(await users[0].api.rpc('request_cancellation',{p_booking:booking.id,p_reason:'Isolated database fixture request'})).data;
   await check('closures resource archives and reduced hours report affected booking without cancellation',async()=>{

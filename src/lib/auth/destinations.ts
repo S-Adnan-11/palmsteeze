@@ -13,6 +13,9 @@ export function visitSelection(params:URLSearchParams):VisitSelection|null {
 export function visitDestination(selection:VisitSelection) {
   return `/booking/review?${new URLSearchParams({resource:selection.resource,date:selection.date,hour:String(selection.hour),duration:String(selection.duration)})}`;
 }
+export function editVisitDestination(selection:VisitSelection) {
+  return `/${visitDestination(selection).slice('/booking/review'.length)}#plan`;
+}
 export function safeDestination(value:unknown):string|null {
   if (typeof value !== 'string' || value.length > 500 || value !== value.trim() || !value.startsWith('/')
       || value.startsWith('//') || value.includes('\\') || [...value].some((c) => c.charCodeAt(0) <= 32 || c.charCodeAt(0) === 127)) return null;

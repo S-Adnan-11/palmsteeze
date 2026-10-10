@@ -1,3 +1,4 @@
+import {fixtureCheckout} from '../tests/database/reservation-fixtures';
 import assert from 'node:assert/strict';
 import { randomBytes,randomUUID } from 'node:crypto';
 import { mkdirSync,writeFileSync } from 'node:fs';
@@ -26,7 +27,7 @@ async function main() {
   const interval=intervalFromSelection(initialBookingDate(new Date(Date.now()+18*86400000)),12,1);
   const quote=(await api.rpc('quote_resource',{p_resource:resource,p_start:interval.starts_at,p_end:interval.ends_at})).data;
   const expected=Object.fromEntries(['hourly_kobo','total_kobo','deposit_percent','deposit_kobo','balance_kobo'].map(k=>[k,quote[k]]));
-  const begun=await api.rpc('begin_checkout',{p_resource:resource,p_start:interval.starts_at,p_end:interval.ends_at,p_request:randomUUID(),p_expected:expected});
+  const begun=await fixtureCheckout(api,{p_resource:resource,p_start:interval.starts_at,p_end:interval.ends_at,p_request:randomUUID(),p_expected:expected});
   assert.equal(begun.error,null);bookingID=begun.data.booking.id;
   assert.equal((await fetch(endpoint,{method:'POST',headers,body:JSON.stringify({bookingId:bookingID})})).status,200);
   sessionID=(await db.query('select session_id from public.payment_attempts where booking_id=$1',[bookingID])).rows[0].session_id;assert.ok(sessionID);

@@ -1,3 +1,4 @@
+import {reservationHeaders,waitForReservationSecurity} from './reservation-security';
 import { test,expect,type BrowserContext,type Page } from '@playwright/test';
 import { createClient,type SupabaseClient } from '@supabase/supabase-js';
 import { createServerClient } from '@supabase/ssr';
@@ -11,8 +12,10 @@ import { verifiedStripeSandbox } from '../../scripts/lib/stripe-sandbox';
 import { initialBookingDate,intervalFromSelection } from '../../src/lib/domain';
 import { visitDestination } from '../../src/lib/auth/destinations';
 import { paymentHandler } from '../../supabase/functions/palmsteeze-payments/index';
+import {formatVisitDate,formatWatDateTime} from '../../src/lib/visit-dates';
 test.use({baseURL:'http://localhost:3000',trace:'off',video:'off',screenshot:'off'});
 test.describe.configure({mode:'serial',timeout:240000});
+if(process.env.PALMSTEEZE_PAYMENT_PROOF_SCOPE&&!['checkout'].includes(process.env.PALMSTEEZE_PAYMENT_PROOF_SCOPE)) throw new Error('Unsupported payment proof scope.');
 const origin='http://localhost:3000';const headers={Origin:origin};
 type User={id:string;email:string;password:string};
 let db:Client;let stripe:Stripe;let admin:SupabaseClient;
@@ -81,13 +84,18 @@ test('real authenticated review checkout confirmation history isolation and late
  const selection={resource:resources['OPEN-16'],date,hour:11,duration:1};
  await page.goto(visitDestination(selection));await expect(page.getByLabel('Verified visit quote')).toContainText('₦800');
  const resultPromise=page.waitForResponse(r=>r.url().endsWith('/api/checkout')&&r.request().method()==='POST');
- await page.getByRole('button',{name:'Reserve with sandbox payment'}).click();const response=await resultPromise;expect([201,202]).toContain(response.status());
+ await waitForReservationSecurity(page);await page.getByRole('button',{name:'Continue to test payment'}).click();const response=await resultPromise;expect([201,202]).toContain(response.status());
  const body=await response.json();const id=body.booking.id;bookings.push(id);
  await expect(page).toHaveURL(new RegExp(`/booking/${id}`));await expect(page.getByTestId('payment-state')).toContainText('open');
  const stored=(await db.query('select owner_id,deposit_kobo,deposit_percent from public.bookings where id=$1',[id])).rows[0];
  expect(stored.owner_id).toBe(users[0].id);expect(Number(stored.deposit_kobo)).toBe(80000);expect(stored.deposit_percent).toBe(40);
- const repeated=await context.request.post('/api/checkout',{headers,data:response.request().postDataJSON()});expect(repeated.status()).toBe(201);expect((await repeated.json()).booking.id).toBe(id);
+ const repeated=await context.request.post('/api/checkout',{headers:{...headers,...await reservationHeaders(context,visitDestination(selection))},data:response.request().postDataJSON()});expect(repeated.status()).toBe(201);expect((await repeated.json()).booking.id).toBe(id);
  await page.goto(`/booking/${id}?checkout=returned`);await expect(page.getByTestId('booking-state')).toContainText('held');await expect(page.getByTestId('payment-state')).toContainText('open');
+ const pendingDetail=await context.request.get(`/api/bookings/${id}`);const pendingPayment=(await pendingDetail.json()).payment;
+ await expect(page.locator('.reservation-notice')).toContainText('Temporarily reserved · complete checkout by '+formatWatDateTime(pendingPayment.provider_expires_at));
+ await expect(page.locator('.reservation-notice')).toContainText('Payment is not confirmed yet.');
+ mkdirSync('docs/screenshots/m4-journey/after',{recursive:true});await page.screenshot({path:'docs/screenshots/m4-journey/after/sandbox-reservation-'+info.project.name+'.png',fullPage:true,animations:'disabled'});
+ await page.goto(`/booking/${id}?checkout=cancelled`);await expect(page.getByTestId('booking-state')).toContainText('held');await expect(page.getByRole('heading',{name:'Payment not confirmed yet',exact:true})).toBeVisible();await expect(page.getByRole('link',{name:'Continue to secure Stripe sandbox checkout'})).toHaveAttribute('href',pendingPayment.checkout_url);
  const other=await browser.newContext({baseURL:origin});const anon=await browser.newContext({baseURL:origin});
  try {
   await signIn(other,users[1]);expect((await other.request.get(`/api/bookings/${id}`)).status()).toBe(404);
@@ -113,6 +121,7 @@ test('real authenticated review checkout confirmation history isolation and late
    throw new Error('Deployed application failed to verify paid checkout; private backend diagnostic saved.');
   }
   await page.reload();await expect(page.getByTestId('booking-state')).toContainText('confirmed');await expect(page.getByTestId('payment-state')).toContainText('paid');
+  await expect(page.locator('.reservation-notice')).toHaveCount(0);await expect(page.locator('.booking-detail')).toContainText(formatVisitDate(date));
   const attempt=(await db.query('select id,session_id,payment_intent_id from public.payment_attempts where booking_id=$1',[id])).rows[0];
   const session=await stripe.checkout.sessions.retrieve(attempt.session_id,{expand:['payment_intent']});expect(session.livemode).toBe(false);expect(session.payment_status).toBe('paid');expect(session.amount_total).toBe(80000);
   const intent=session.payment_intent as Stripe.PaymentIntent;expect(intent.status).toBe('succeeded');expect(intent.amount_received).toBe(80000);
@@ -144,17 +153,31 @@ test('real authenticated review checkout confirmation history isolation and late
   const a11y=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();expect(a11y.violations.map(v=>v.id)).toEqual([]);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth)).toBe(false);
   mkdirSync('docs/screenshots',{recursive:true});await page.screenshot({path:`docs/screenshots/m2-confirmed-${info.project.name}.png`,fullPage:true});
+  await page.screenshot({path:`docs/screenshots/m4-journey/after/sandbox-confirmed-${info.project.name}.png`,fullPage:true,style:'.skip-link:not(:focus){visibility:hidden!important}'});
   await page.goto('/account');await expect(page.locator(`[data-booking-id="${id}"]`)).toContainText('paid');
+  await expect(page.locator(`[data-booking-id="${id}"]`)).toContainText(formatVisitDate(date));await expect(page.locator(`[data-booking-id="${id}"] .reservation-notice`)).toHaveCount(0);
   evidence.authenticatedHostedPayment='PASSED';evidence.authoritativeConfirmationAndHistory='PASSED';evidence.customerIsolationAndRestrictions='PASSED';evidence.naturalSignedWebhook='PASSED';evidence.browserReturnCannotConfirm='PASSED';
+  if(process.env.PALMSTEEZE_PAYMENT_PROOF_SCOPE==='checkout') {
+   await expect(page.locator(`[data-booking-id="${id}"]`)).toContainText('Cancellation request: pending');
+   await page.getByTestId('customer-identity').evaluate(n=>{n.textContent='Signed in as a verified synthetic review customer.';});await page.screenshot({path:`docs/screenshots/m4-journey/after/sandbox-history-${info.project.name}.png`,fullPage:true,style:'.skip-link:not(:focus){visibility:hidden!important}'});
+   const stoppedSelection={...selection,resource:resources['OPEN-15'],hour:12};await page.goto(visitDestination(stoppedSelection));
+   const stopResult=page.waitForResponse(r=>r.url().endsWith('/api/checkout')&&r.request().method()==='POST');await waitForReservationSecurity(page);await page.getByRole('button',{name:'Continue to test payment'}).click();const stoppedResponse=await stopResult;expect([201,202]).toContain(stoppedResponse.status());const stoppedID=(await stoppedResponse.json()).booking.id;bookings.push(stoppedID);
+   await expect(page).toHaveURL(new RegExp('/booking/'+stoppedID));await expect(page.getByTestId('payment-state')).toContainText('open');await page.getByRole('button',{name:'Stop unpaid checkout'}).click();
+   await expect(page.getByTestId('payment-state')).toContainText('expired',{timeout:60000});await expect(page.getByRole('heading',{name:'Checkout ended without payment',exact:true})).toBeVisible();await expect(page.getByRole('link',{name:'Continue to secure Stripe sandbox checkout'})).toHaveCount(0);
+   const stoppedAttempt=(await db.query('select session_id,collected_kobo from public.payment_attempts where booking_id=$1',[stoppedID])).rows[0];const ended=await stripe.checkout.sessions.retrieve(stoppedAttempt.session_id);expect(ended.status).toBe('expired');expect(ended.payment_status).toBe('unpaid');expect(Number(stoppedAttempt.collected_kobo)).toBe(0);
+   await page.screenshot({path:`docs/screenshots/m4-journey/after/sandbox-stopped-${info.project.name}.png`,fullPage:true,style:'.skip-link:not(:focus){visibility:hidden!important}'});evidence.verifiedUnpaidCheckoutStop='PASSED';
+   evidence.scope='Focused checkout, confirmation, customer restrictions, cancellation request, verified unpaid stop and genuine provider cleanup. Historical late-payment/lost-response fault gates are not rerun in this scope.';
+   return;
+  }
   // Controlled local loss of allocation before a genuine provider payment.
   // This fault is injected ONLY into this run's booking, not a production path.
   const late={...selection,resource:resources['OPEN-15']};await page.goto(visitDestination(late));
   const lateResponsePromise=page.waitForResponse(r=>r.url().endsWith('/api/checkout')&&r.request().method()==='POST');
-  await page.getByRole('button',{name:'Reserve with sandbox payment'}).click();const lateResponse=await lateResponsePromise;expect(lateResponse.status()).toBe(201);
+  await waitForReservationSecurity(page);await page.getByRole('button',{name:'Continue to test payment'}).click();const lateResponse=await lateResponsePromise;expect(lateResponse.status()).toBe(201);
   const lateBody=await lateResponse.json();const lateID=lateBody.booking.id;bookings.push(lateID);await expect(page).toHaveURL(new RegExp(`/booking/${lateID}`));
   await db.query('begin');await db.query('update public.allocations set active=false where booking_id=$1',[lateID]);await db.query("update public.bookings set state='expired' where id=$1 and owner_id=$2",[lateID,users[0].id]);await db.query('commit');
   const interval=intervalFromSelection(date,11,1);
-  const competitor=await other.request.post('/api/holds',{headers,data:{resourceId:late.resource,startsAt:interval.starts_at,endsAt:interval.ends_at,requestId:randomUUID()}});expect(competitor.status()).toBe(201);
+  const competitor=await other.request.post('/api/holds',{headers:{...headers,...await reservationHeaders(other,visitDestination(late))},data:{resourceId:late.resource,startsAt:interval.starts_at,endsAt:interval.ends_at,requestId:randomUUID()}});expect(competitor.status()).toBe(201);
   const competingID=(await competitor.json()).booking.id;
   // Suppress only this fixture browser's automatic status reads so the controlled
   // lost-refund-response can be injected before normal deployed reconciliation.

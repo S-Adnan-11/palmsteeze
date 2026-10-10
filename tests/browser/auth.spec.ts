@@ -1,3 +1,4 @@
+import {ensureEntrance,reservationHeaders,waitForReservationSecurity} from './reservation-security';
 import { test,expect,type BrowserContext } from '@playwright/test';
 import { createClient,type Session } from '@supabase/supabase-js';
 import { createServerClient,createChunks } from '@supabase/ssr';
@@ -8,11 +9,15 @@ import AxeBuilder from '@axe-core/playwright';
 import { verifyProject,connectDatabase,inspectDatabase } from '../../scripts/lib/database';
 import { initialBookingDate,intervalFromSelection } from '../../src/lib/domain';
 import { visitDestination } from '../../src/lib/auth/destinations';
+import {selectChoice} from './select-choice';
+import {chooseDate} from './choose-date';
+import {formatVisitDate} from '../../src/lib/visit-dates';
 
 // Genuine password-sign-in fixtures exercise SSR sessions. They are not Google OAuth proof.
 // No auth tokens/cookies/requests are written to traces, videos, screenshots or console.
 test.use({baseURL:'http://localhost:3000',trace:'off',video:'off',screenshot:'off'});
 test.describe.configure({mode:'serial',timeout:90000});
+test.beforeEach(async({context})=>{await ensureEntrance(context);});
 const origin = 'http://localhost:3000';
 type Identity = {id:string;email:string;password:string};
 let owner:Client;
@@ -80,11 +85,13 @@ test.afterAll(async () => {
   finally {users.length = 0;await owner.end();}
 });
 
-test('visitors browse, selected visit survives login gate, callbacks and redirect attacks recover safely',async ({page,request}) => {
+test('visitors browse, selected visit survives login gate, callbacks and redirect attacks recover safely',async ({page,context}) => {
+  const request=context.request;
   await page.goto('/');await expect(page.getByText('Choose your space. Check your date and hours above.')).toBeVisible();
-  await page.getByLabel('Your space',{exact:true}).selectOption(resource);
-  await page.getByLabel('Date',{exact:true}).fill(selection.date);
-  await page.getByLabel('Start time · WAT',{exact:true}).selectOption('10');await page.getByLabel('Duration',{exact:true}).selectOption('2');
+  await selectChoice(page,'Your space',resource);
+  await chooseDate(page,selection.date);
+  await selectChoice(page,'Start time · WAT','10');await selectChoice(page,'Duration','2');
+  await page.getByRole('button',{name:'Check availability',exact:true}).click();
   await page.getByRole('link',{name:'Continue to booking review'}).click();
   await expect(page).toHaveURL(/\/login\?/);
   await expect(page.locator('input[name="next"]')).toHaveValue(destination);
@@ -100,9 +107,46 @@ test('visitors browse, selected visit survives login gate, callbacks and redirec
     expect(new URL(response.headers().location).pathname).toBe('/login');assertPrivate(response);
   }
   await page.goto('/auth/callback?error=access_denied&error_description=untrusted');
-  await expect(page.getByRole('status')).toContainText('Sign-in was cancelled.');
+  await expect(page.locator('.auth-notice')).toContainText('Sign-in was cancelled.');
   await expect(page.getByText('untrusted',{exact:true})).toHaveCount(0);
-  await page.goto('/login?next=//evil.example');await expect(page.getByRole('status')).toContainText('not allowed');
+  await page.goto('/login?next=//evil.example');await expect(page.locator('.auth-notice')).toContainText('not allowed');
+});
+
+test('fresh review payment bounds and editable selection survive session loss without a new booking',async({page,context},info)=>{
+  await signIn(context,users[0]);
+  const visit={...selection,date:initialBookingDate(new Date(Date.now()+11*86400000))};
+  const next=visitDestination(visit);
+  await page.goto(next);await expect(page.getByLabel('Verified visit quote')).toContainText('₦4,000');
+  await page.getByRole('radio',{name:/Full payment/}).check();
+  await expect(page.getByLabel('Payment summary')).toContainText('₦0');
+  await page.getByRole('radio',{name:/Custom amount/}).check();
+  const amount=page.getByLabel('Payment amount in naira');const reserve=page.getByRole('button',{name:'Continue to test payment'});
+  for(const value of ['1599.99','4000.01','1.001']) {await amount.fill(value);await expect(reserve).toBeDisabled();}
+  await page.getByRole('button',{name:'Cookie settings',exact:true}).click();await page.getByRole('checkbox',{name:/Remember booking/}).check();await page.getByRole('button',{name:'Save preferences'}).click();await waitForReservationSecurity(page);await amount.fill('2000.01');await expect(reserve).toBeEnabled();
+  await expect(page.getByLabel('Payment summary')).toContainText('₦2,000.01');await expect(page.getByLabel('Payment summary')).toContainText('₦1,999.99');
+  const axe=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();expect(axe.violations.map(v=>v.id)).toEqual([]);
+  mkdirSync('docs/screenshots/m4-refinement',{recursive:true});
+  await page.screenshot({path:`docs/screenshots/m4-refinement/payment-custom-${info.project.name}.png`,fullPage:true,animations:'disabled',style:'.skip-link:not(:focus){visibility:hidden !important}'});
+  await context.clearCookies({name:/^sb-/});await reserve.click();await expect(page).toHaveURL(/\/login\?message=session-ended/);
+  await expect(page.locator('input[name=next]')).toHaveValue(next);
+  await page.getByRole('link',{name:'Keep browsing',exact:true}).click();
+  await expect(page.getByLabel('Your space',{exact:true})).toHaveAttribute('data-value',visit.resource);await expect(page.getByLabel('Date',{exact:true})).toHaveAttribute('data-value',visit.date);
+  await expect(page.getByLabel('Start time · WAT',{exact:true})).toHaveAttribute('data-value','10');await expect(page.getByLabel('Duration',{exact:true})).toHaveAttribute('data-value','2');
+  await expect(page.getByRole('link',{name:'Continue to booking review'})).toHaveCount(0);
+  await signIn(context,users[0]);await page.goto(next);await expect(page.getByRole('radio',{name:/Custom amount/})).toBeChecked();await expect(amount).toHaveValue('2000.01');
+  const before=(await owner.query('select count(*)::int as n from public.bookings where owner_id=$1',[users[0].id])).rows[0].n;
+  await page.route('**/api/quote?*',async route=>{const response=await route.fetch();const data=await response.json();data.quote={...data.quote,hourly_kobo:250000,total_kobo:500000,deposit_kobo:200000,balance_kobo:300000};await route.fulfill({response,json:data});});
+  let posts=0;page.on('request',r=>{if(new URL(r.url()).pathname==='/api/checkout'&&r.method()==='POST') posts++;});
+  await waitForReservationSecurity(page);await reserve.click();await expect(page.locator('.booking-status')).toContainText('The quote changed.');await expect(page.getByLabel('Verified visit quote')).toContainText('₦5,000');expect(posts).toBe(0);
+  expect((await owner.query('select count(*)::int as n from public.bookings where owner_id=$1',[users[0].id])).rows[0].n).toBe(before);
+  await page.unroute('**/api/quote?*');
+  const rechecked=page.waitForResponse(response=>response.url().includes('/api/quote?'));
+  await page.getByRole('button',{name:'Recheck price & availability'}).focus();
+  await page.keyboard.press('Enter');
+  expect((await rechecked).status()).toBe(200);
+  await expect(page.getByLabel('Verified visit quote')).toContainText('₦4,000');
+  await expect(page.getByRole('radio',{name:/Custom amount/})).toBeChecked();await expect(amount).toHaveValue('2000.01');
+  await page.screenshot({path:`docs/screenshots/m4-refinement/payment-custom-${info.project.name}.png`,fullPage:true,animations:'disabled',style:'.skip-link:not(:focus){visibility:hidden !important}'});
 });
 
 test('genuine SSR session persists, refreshes through Auth, and rejects fabricated cookie identity',async ({page,context}) => {
@@ -112,7 +156,7 @@ test('genuine SSR session persists, refreshes through Auth, and rejects fabricat
   await page.reload();await expect(page.getByTestId('customer-identity')).toContainText(users[0].email);
   expect((await context.cookies()).filter((c) => c.name.startsWith('sb-')).every((c) => c.httpOnly && c.sameSite === 'Lax')).toBe(true);
   // Storage expiry is forced; the actual refresh token and Auth identity are genuine.
-  await context.clearCookies();await context.addCookies(sessionCookies({...session,expires_at:Math.floor(Date.now()/1000)-60}));
+  await context.clearCookies({name:/^sb-/});await context.addCookies(sessionCookies({...session,expires_at:Math.floor(Date.now()/1000)-60}));
   const before = (await context.cookies()).filter((c) => c.name.startsWith('sb-')).map((c) => c.value).join('');
   const refreshed = await page.reload();assertPrivate(refreshed!,true);
   await expect(page.getByTestId('customer-identity')).toContainText(users[0].email);
@@ -120,13 +164,13 @@ test('genuine SSR session persists, refreshes through Auth, and rejects fabricat
   expect(before === after).toBe(false); // never print cookie values
   // A fabricated storage user has no authority even when bundled with a genuine customer token.
   const newSession = await signIn(context,users[0]);
-  await context.clearCookies();await context.addCookies(sessionCookies({...newSession,user:{...newSession.user,id:users[1].id,email:users[1].email,user_metadata:{role:'admin'}}}));
+  await context.clearCookies({name:/^sb-/});await context.addCookies(sessionCookies({...newSession,user:{...newSession.user,id:users[1].id,email:users[1].email,user_metadata:{role:'admin'}}}));
   await page.reload();await expect(page.getByTestId('customer-identity')).toContainText(users[0].email);
 });
 
 test('authenticated application hold reaches PostgreSQL as its customer; another customer and fake admin are rejected',async ({page,context,browser},info) => {
   await signIn(context,users[0]);await page.goto(destination);
-  await expect(page.getByTestId('visit-selection')).toContainText(`${selection.date} · 10:00 WAT · 2 hours`);
+  await expect(page.getByTestId('visit-selection')).toContainText(`${formatVisitDate(selection.date)} · 10:00–12:00 WAT · 2 hours`);
   await expect(page.getByLabel('Verified visit quote')).toContainText('₦4,000');
   const interval = intervalFromSelection(selection.date,10,2);
   const payload = {resourceId:resource,startsAt:interval.starts_at,endsAt:interval.ends_at,requestId:randomUUID()};
@@ -135,18 +179,21 @@ test('authenticated application hold reaches PostgreSQL as its customer; another
   }
   // Preserve M1's authenticated hold API regression; M2's new primary checkout
   // interface has its own real hosted-payment browser proof.
-  expect((await context.request.post(`${origin}/api/holds`,{headers,data:payload})).status()).toBe(201);
+  expect((await context.request.post(`${origin}/api/holds`,{headers:{...headers,...await reservationHeaders(context,destination)},data:payload})).status()).toBe(201);
   await page.goto('/account');
   await expect(page.getByRole('heading',{level:1})).toHaveText('Your visits.');
   const result = await context.request.get(`${origin}/api/holds`);expect(result.status()).toBe(200);assertPrivate(result);
   const body = await result.json();expect(body.bookings).toHaveLength(1);
   const hold = body.bookings[0];expect(hold.owner_id).toBe(users[0].id);expect(hold.resource_id).toBe(resource);
+  await expect(page.locator('.visit-card')).toContainText(formatVisitDate(selection.date));
+  await expect(page.locator('.visit-card .reservation-notice')).toContainText('Temporary reservation · expires');
+  await expect(page.locator('.visit-card .reservation-notice')).toContainText('WAT');
   expect(hold.total_kobo).toBe(400000);expect(hold.deposit_kobo).toBe(160000);
   const stored = await owner.query('select owner_id,total_kobo from public.bookings where id=$1',[hold.id]);
   expect(stored.rows[0].owner_id).toBe(users[0].id);expect(Number(stored.rows[0].total_kobo)).toBe(400000);
   const other = await browser.newContext({baseURL:origin});
   try {
-    await signIn(other,users[1]);
+    await ensureEntrance(other);await signIn(other,users[1]);
     const view = await other.request.get('/api/holds');expect(view.status()).toBe(200);expect((await view.json()).bookings).toEqual([]);assertPrivate(view);
     const otherPage = await other.newPage();const otherResponse = await otherPage.goto('/account');assertPrivate(otherResponse!,true);
     await expect(otherPage.getByTestId('customer-identity')).toContainText(users[1].email);
@@ -158,27 +205,28 @@ test('authenticated application hold reaches PostgreSQL as its customer; another
     expect((await other.request.post('/api/closures',{headers,data:{resourceId:resource,startsAt:interval.starts_at,endsAt:interval.ends_at,reason:'spoofed metadata'}})).status()).toBe(403);
     expect((await other.request.get('/api/holds',{headers:{Authorization:'Bearer invalid-session'}})).status()).toBe(401);
     const anon = await browser.newContext({baseURL:origin});
-    try {expect((await anon.request.get('/api/holds')).status()).toBe(401);expect((await anon.request.post('/api/holds',{headers,data:payload})).status()).toBe(401);} finally {await anon.close();}
+    try {await ensureEntrance(anon);expect((await anon.request.get('/api/holds')).status()).toBe(401);expect((await anon.request.post('/api/holds',{headers,data:payload})).status()).toBe(401);} finally {await anon.close();}
   } finally {await other.close();}
   const a11y = await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();expect(a11y.violations.map((v) => v.id)).toEqual([]);
   expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)).toBe(false);
   // Capture the real customer screen without the test identity's email appearing in an artifact.
   await page.getByTestId('customer-identity').evaluate((node) => {node.textContent = 'Signed in as a verified test customer.';});
-  mkdirSync('docs/screenshots',{recursive:true});await page.screenshot({path:`docs/screenshots/m2-regression-account-${info.project.name}.png`,fullPage:true});
+  mkdirSync('docs/screenshots/m4-refinement',{recursive:true});await page.screenshot({path:`docs/screenshots/m4-refinement/customer-regression-${info.project.name}.png`,fullPage:true});
   await page.getByRole('button',{name:'Release hold',exact:true}).click();
   await expect(page.getByRole('button',{name:'Release hold',exact:true})).toHaveCount(0);
 });
 
-test('sign-out clears this browser session; unusable expired session recovers to login and cannot call APIs',async ({page,context,request}) => {
+test('sign-out clears this browser session; unusable expired session recovers to login and cannot call APIs',async ({page,context}) => {
+  const request=context.request;
   const session = await signIn(context,users[0]);await page.goto('/account');
   expect((await request.post('/auth/sign-out',{headers:{Origin:'https://evil.example'},maxRedirects:0})).status()).toBe(403);
   expect((await request.get('/auth/sign-out')).status()).toBe(405);
   await page.getByRole('button',{name:'Sign out',exact:true}).click();
-  await expect(page.getByRole('status')).toContainText('You are signed out');
+  await expect(page.locator('.auth-notice')).toContainText('You are signed out');
   expect((await context.cookies()).filter((c) => c.name.startsWith('sb-') && c.value).length).toBe(0);
   expect((await context.request.get(`${origin}/api/holds`)).status()).toBe(401);
   await page.goto('/account');await expect(page).toHaveURL(/\/login\?/);
   await context.addCookies(sessionCookies({...session,access_token:'invalid-access-token',refresh_token:'invalid-refresh-token',expires_at:Math.floor(Date.now()/1000)-60}));
-  await page.goto('/account');await expect(page.getByRole('status')).toContainText('Your session ended');
+  await page.goto('/account');await expect(page.locator('.auth-notice')).toContainText('Your session ended');
   expect((await context.request.get(`${origin}/api/holds`)).status()).toBe(401);
 });

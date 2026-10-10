@@ -1,6 +1,7 @@
 import { test,expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { mkdirSync } from 'node:fs';
+import {selectChoice} from './select-choice';
 
 test('customer preview: filters, quote, keyboard, mobile layout and accessibility',async ({page},info) => {
   const errors: string[] = [];
@@ -12,16 +13,16 @@ test('customer preview: filters, quote, keyboard, mobile layout and accessibilit
   await page.getByRole('button',{name:'Meeting rooms',exact:true}).click();
   await expect(page.locator('.space-card')).toHaveCount(3);
   await page.getByRole('link',{name:'Plan a visit for Cove'}).click();
-  await expect(page.getByLabel('Your space',{exact:true})).toHaveValue('00000000-0000-4000-8000-000000000025');
-  await page.getByLabel('Duration',{exact:true}).selectOption('2');
-  await expect(page.getByLabel('Sample price estimate')).toContainText('₦16,000');
-  await expect(page.getByLabel('Sample price estimate')).toContainText('₦6,400');
+  await expect(page.getByRole('group',{name:'Selected room'})).toHaveAttribute('data-resource-id','00000000-0000-4000-8000-000000000025');
+  await selectChoice(page,'Duration','2');
+  await expect(page.getByLabel('Estimated visit price')).toContainText('₦16,000');
+  await expect(page.getByLabel('Estimated visit price')).toContainText('₦6,400');
   await page.getByRole('button',{name:'Preview your visit'}).click();
   await expect(page.locator('.booking-status')).toContainText('Live availability and reservations are not connected yet.');
   await page.getByRole('button',{name:'All spaces',exact:true}).click();
   await expect(page.locator('.space-card')).toHaveCount(5);
-  await page.getByLabel('Your space',{exact:true}).selectOption('00000000-0000-4000-8000-000000000001');
-  await page.getByLabel('Duration',{exact:true}).selectOption('1');
+  await page.getByRole('radio',{name:/Open desks/}).check();
+  await selectChoice(page,'Duration','1');
   await page.evaluate(() => window.scrollTo(0,0));
   await page.keyboard.press('Control+Home');
   await page.getByRole('link',{name:'Skip to content'}).focus();

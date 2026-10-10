@@ -19,12 +19,20 @@ export function configuredAppOrigin(env:Environment) {
 
 export function assertHostedEnvironment(env:Environment) {
   const origin = configuredAppOrigin({...env,VERCEL:'1'});
+  if(!/^[a-f0-9]{64}$/.test(env.PALMSTEEZE_SECURITY_SECRET||'')) throw new Error('Hosting requires the server-only application signing key and matching private database configuration.');
+  if (!env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || !env.TURNSTILE_SECRET_KEY
+      || env.PALMSTEEZE_TURNSTILE_TEST_MODE === 'true'
+      || /^[123]x0{10,}/.test(env.NEXT_PUBLIC_TURNSTILE_SITE_KEY)
+      || /^[123]x0{10,}/.test(env.TURNSTILE_SECRET_KEY)
+      || /your_|placeholder/i.test(env.NEXT_PUBLIC_TURNSTILE_SITE_KEY+env.TURNSTILE_SECRET_KEY)) {
+    throw new Error('Hosting requires genuine Turnstile keys and disabled test mode.');
+  }
   if (!/^[a-z0-9]{20}$/.test(env.SUPABASE_PROJECT_REF || '')
       || env.NEXT_PUBLIC_SUPABASE_URL !== `https://${env.SUPABASE_PROJECT_REF}.supabase.co`
       || !env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
       || env.PALMSTEEZE_DB_DEDICATED !== 'true' || env.PALMSTEEZE_DB_FREE_CONFIRMED !== 'true'
       || (env.PALMSTEEZE_PAYMENT_WORKER_TOKEN || '').length < 32) {
-    throw new Error('Incomplete hosted configuration: use the seven variables in deployment/hosted.env.example.');
+    throw new Error('Incomplete hosted configuration: use deployment/hosted.env.example.');
   }
   const key = env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   if (!key.startsWith('sb_publishable_')) {

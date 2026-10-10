@@ -86,7 +86,7 @@ export async function inspectDatabase(client: Client) {
     const privateTables = await client.query(`select table_name from information_schema.tables
       where table_schema = 'private' and table_type = 'BASE TABLE' order by table_name`);
     const unknown = tables.rows.some((t) => !permittedTables.has(t.table_name))
-      || privateTables.rows.some((t) => !['app_roles','schema_migrations','recovery_probe_runs','recovery_probe_jobs','payment_jobs','payment_events','cancellation_identity'].includes(t.table_name));
+      || privateTables.rows.some((t) => !['app_roles','schema_migrations','recovery_probe_runs','recovery_probe_jobs','payment_jobs','payment_events','cancellation_identity','reservation_security_config','reservation_authorizations'].includes(t.table_name));
     if (unknown) throw new ReadinessError('NOT RUN: unrecognized tables exist in the selected target; migrations refused pending review. Names/data withheld.');
     const hasHistory = privateTables.rows.some((t) => t.table_name === 'schema_migrations');
     if ((tables.rowCount || privateTables.rowCount) && !hasHistory) {

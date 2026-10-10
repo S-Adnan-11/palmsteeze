@@ -7,7 +7,8 @@ import { paymentHandler } from '../../supabase/functions/palmsteeze-payments/ind
 const origin = 'https://palmsteeze.example';
 const env = {APP_ORIGIN:origin,VERCEL:'1',SUPABASE_PROJECT_REF:'a'.repeat(20),
   NEXT_PUBLIC_SUPABASE_URL:`https://${'a'.repeat(20)}.supabase.co`,NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:'sb_publishable_fixture',
-  PALMSTEEZE_DB_DEDICATED:'true',PALMSTEEZE_DB_FREE_CONFIRMED:'true',PALMSTEEZE_PAYMENT_WORKER_TOKEN:'fixture'.repeat(8)};
+  PALMSTEEZE_DB_DEDICATED:'true',PALMSTEEZE_DB_FREE_CONFIRMED:'true',PALMSTEEZE_PAYMENT_WORKER_TOKEN:'fixture'.repeat(8),
+  NEXT_PUBLIC_TURNSTILE_SITE_KEY:'0x-fixture-site',TURNSTILE_SECRET_KEY:'0x-fixture-secret',PALMSTEEZE_SECURITY_SECRET:'ab'.repeat(32)};
 
 test('hosting fails closed without canonical HTTPS origin and keeps local development usable',() => {
   assert.equal(configuredAppOrigin({}),'http://localhost:3000');

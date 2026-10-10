@@ -1,5 +1,9 @@
 # PalmSteeze Workspaces
 
+**Current status, 9 October 2026:** M4 privacy/security continuation is delivered for review: [review and screenshots](M4_PRIVACY_SECURITY_REVIEW.md), [data inventory and privacy requests](PRIVACY_OPERATIONS.md), [Turnstile coverage](TURNSTILE.md). Privacy, Cookies and Demo Terms are available locally; optional draft memory is off by default. M4 stays open and **M5 publication stays paused**. Genuine local-widget completion and the direct-Supabase reservation boundary remain publication gates. General positive usability feedback does not complete physical-phone, full Google or comprehensive visual acceptance.
+
+Earlier M4 work on `refinement/m4-booking-auth-motion` includes Arrive → Settle → Gather, branded accessible selectors and consistent booking/sign-in/customer/admin feedback. `1c8ed14` and earlier checkpoints remain preserved; nothing was published. [Earlier screenshots and recording](M4_POLISH_REVIEW.html), [journey review](M4_JOURNEY_REVIEW.md).
+
 A fictional Lagos coworking venue: 24 desks and three whole meeting rooms, 27 resources / 44 seats. M1/M2/M3 are complete in the development sandbox; M3 uses the owner's approved permanent-refusal exception, preserving actual replacement creation FAILED. Brand Kit v2 is approved. On 5 October 2026 the owner accepted the redesign's current visual direction for progressing to M5 after partial screen review. Comprehensive visual and physical-device acceptance remain outstanding. No publication, paid service or live-money payment occurred.
 
 Local review: `http://localhost:3000` (customer browsing), `/preview/admin` (explicitly synthetic/read-only), `/portfolio` (architecture explanation). [M4 review and screenshots](M4_REDESIGN_REVIEW.md), [architecture](docs/ARCHITECTURE.md), [asset provenance](ASSET_PROVENANCE.md). Public demo/captures contain no real customer/admin identity. Hosting remains M5.
@@ -151,3 +155,7 @@ $env:PALMSTEEZE_BROWSER_MODE='redesign'
 ```
 
 This selects live catalogue/access checks, genuine sessions, actual sandbox checkout, administration and visual/state tests. The visual test additionally inspects 360px and 768px widths, focus/reduced motion, empty search, delayed checks, quote errors and unavailable selections. Fault responses in the visual test are controlled browser fixtures, not real provider failures. Current screenshots live under `docs/screenshots/m4-v2/`; reports/docs retain their existing Git exclusions. Authenticated screenshots use run-owned test records; real-admin totals are masked. [Assets and exact prompts](ASSET_PROVENANCE.md), [licences](THIRD_PARTY_NOTICES.md).
+
+Current clarity review (8 October): [M4_CLARITY_REVIEW.html](M4_CLARITY_REVIEW.html) / [notes and new checks](M4_CLARITY_REVIEW.md). M4 stays open; M5 publication remains paused. Plain customer language, readable WAT dates, accessible branded calendar, one room selection and larger supporting text build on the current refinement.
+
+Current bounded customer journey review (9 October): [before/after desktop/mobile gallery](M4_JOURNEY_REVIEW.html) / [evidence and remaining walkthrough](M4_JOURNEY_REVIEW.md). Official Google presentation, clearer booking/payment/refund states and safe read retries. Owner visual feedback is recorded; physical-phone/Google acceptance remains unconfirmed. M4 open; M5 publication paused.

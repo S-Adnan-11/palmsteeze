@@ -38,7 +38,7 @@ export async function customerSession() {
     return error || !data.user ? null : {client,user:data.user};
   } catch {return null;}
 }
-export async function authenticatedClient(request: Request) {
+export async function authenticatedContext(request: Request) {
   const config = publicConfiguration();
   if (!config) return null;
   const bearer = request.headers.get('authorization');
@@ -46,10 +46,11 @@ export async function authenticatedClient(request: Request) {
     if (!bearer.startsWith('Bearer ')) return null;
     const client = createClient(config.url,config.key,{global:{fetch:uncachedFetch,headers:{Authorization:bearer}},auth:{persistSession:false,autoRefreshToken:false}});
     const {data,error} = await client.auth.getUser(bearer.slice(7));
-    return error || !data.user ? null : client;
+    return error || !data.user ? null : {client,user:data.user};
   }
   const client = await sessionClient(true);if (!client) return null;
   // getUser verifies the session with Auth; no trusted client-provided identity or role.
   const {data,error} = await client.auth.getUser();
-  return error || !data.user ? null : client;
+  return error || !data.user ? null : {client,user:data.user};
 }
+export async function authenticatedClient(request:Request) {return (await authenticatedContext(request))?.client||null;}
