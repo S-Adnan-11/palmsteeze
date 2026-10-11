@@ -21,7 +21,10 @@ async function main() {
       ['desktop-800',{width:800,height:600},'no-preference'],
       ['mobile',{width:390,height:664},'no-preference'],
       ['reduced',{width:1440,height:1000},'reduce'],
+      ['owner-normal',{width:1366,height:633},'no-preference'],
+      ['owner-reduced',{width:1366,height:633},'reduce'],
     ] as const) {
+      if(mode.startsWith('owner-')!==process.argv.includes('--owner-viewport'))continue;
       const mobile=mode==='mobile';
       const context=await browser.newContext({viewport,isMobile:mobile,hasTouch:mobile,reducedMotion:preference,recordVideo:{dir:join(output,'raw'),size:viewport}});
       await context.addInitScript('window.__name = fn => fn;');
