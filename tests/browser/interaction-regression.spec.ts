@@ -101,24 +101,24 @@ test('workspace scroll progresses forwards and backwards on small desktops',asyn
     for(const {width,height} of [{width:1440,height:1000},{width:1280,height:800},{width:960,height:720},{width:800,height:600}]) {
       await page.setViewportSize({width,height});await expect(section).toHaveAttribute('data-motion','scroll');
       const bounds=await section.evaluate(node=>{
-        const sticky=node.querySelector<HTMLElement>('.experience-sticky')!;
+        const sticky=node.querySelector<HTMLElement>('[data-story-panel]')!;
         return {start:scrollY+node.getBoundingClientRect().top-parseFloat(getComputedStyle(sticky).top),travel:node.getBoundingClientRect().height-sticky.offsetHeight};
       });
-      await page.evaluate(start=>scrollTo({top:start,behavior:'instant'}),bounds.start);await expect(section).toHaveAttribute('data-scene','0');
+      await page.evaluate(start=>scrollTo({top:start,behavior:'instant'}),bounds.start);await expect(section.locator('[aria-current="step"]')).toHaveAttribute('data-story-stage','0');
       const link=section.getByRole('link',{name:'Choose your rhythm'});
       const linkBox=(await link.boundingBox())!;
       expect(linkBox.y).toBeGreaterThanOrEqual(0);expect(linkBox.y+linkBox.height).toBeLessThanOrEqual(height);
       const scenePixels:Buffer[]=[];
       for(const [index,progress] of [0,.5,1].entries()) {
         await page.evaluate(y=>scrollTo({top:y,behavior:'instant'}),bounds.start+bounds.travel*progress);
-        await expect(section).toHaveAttribute('data-scene',String(index));
-        const layer=section.locator('.experience-layer').nth(index);
+        await expect(section.locator('[aria-current="step"]')).toHaveAttribute('data-story-stage',String(index));
+        const layer=section.locator('[data-story-scene]').nth(index);
         await expect(layer).toHaveCSS('opacity','1');
         await expect(layer.locator('img')).toHaveJSProperty('complete',true);
         expect(await layer.locator('img').evaluate(img=>(img as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
-        const imageBox=(await section.locator('.experience-images').boundingBox())!;
+        const imageBox=(await section.locator('[data-story-visual]').boundingBox())!;
         expect(imageBox.width).toBeGreaterThan(width*.35);expect(imageBox.y).toBeGreaterThanOrEqual(0);expect(imageBox.y+imageBox.height).toBeLessThanOrEqual(height);
-        scenePixels.push(await section.locator('.experience-images').screenshot());
+        scenePixels.push(await section.locator('[data-story-visual]').screenshot());
         await capture(page,`scene-${width}-${index}`,info);
       }
       expect(scenePixels[0].equals(scenePixels[1])).toBe(false);expect(scenePixels[1].equals(scenePixels[2])).toBe(false);
@@ -126,7 +126,7 @@ test('workspace scroll progresses forwards and backwards on small desktops',asyn
       const forward:ScrollFrame[]=[],reverse:ScrollFrame[]=[];
       for(const direction of [1,-1])for(let index=0;index<70;index++) {
         await page.mouse.wheel(0,direction*bounds.travel/72);await page.waitForTimeout(35);
-        const frame=await section.evaluate(node=>({scene:(node as HTMLElement).dataset.scene,top:node.querySelector('.experience-sticky')!.getBoundingClientRect().top,opacity:[...node.querySelectorAll('.experience-layer')].map(layer=>Number(getComputedStyle(layer).opacity))}));
+        const frame=await section.evaluate(node=>({scene:node.querySelector('[aria-current="step"]')?.getAttribute('data-story-stage')||undefined,top:node.querySelector('[data-story-panel]')!.getBoundingClientRect().top,opacity:[...node.querySelectorAll('[data-story-scene]')].map(layer=>Number(getComputedStyle(layer).opacity))}));
         (direction===1?forward:reverse).push(frame);
       }
       expect([...new Set(forward.map(f=>f.scene))]).toEqual(['0','1','2']);expect([...new Set(reverse.map(f=>f.scene))]).toEqual(['2','1','0']);
@@ -136,7 +136,7 @@ test('workspace scroll progresses forwards and backwards on small desktops',asyn
       const edges=[];
       for(const y of [bounds.start-16,bounds.start,bounds.start+bounds.travel,bounds.start+bounds.travel+16]) {
         await page.evaluate(y=>scrollTo({top:y,behavior:'instant'}),y);await page.waitForTimeout(40);
-        edges.push(await section.locator('.experience-sticky').evaluate(node=>node.getBoundingClientRect().top));
+        edges.push(await section.locator('[data-story-panel]').evaluate(node=>node.getBoundingClientRect().top));
       }
       expect(Math.abs(edges[0]-edges[1]-16)).toBeLessThan(2);expect(Math.abs(edges[2]-edges[3]-16)).toBeLessThan(2);
       await link.click();await expect(page).toHaveURL(/#plan$/);await expect(page.locator('#plan')).toBeInViewport();
@@ -145,13 +145,13 @@ test('workspace scroll progresses forwards and backwards on small desktops',asyn
     }
     await page.setViewportSize({width:760,height:900});await expect(section).toHaveAttribute('data-motion','static');
     await page.setViewportSize({width:761,height:900});await expect(section).toHaveAttribute('data-motion','scroll');
-    await page.setViewportSize({width:1440,height:900});await page.emulateMedia({reducedMotion:'reduce'});await expect(section).toHaveAttribute('data-motion','static');await expect(section.locator('.experience-images')).toBeHidden();
-    for(const image of await section.locator('.experience-static-image').all())await expect(image).toBeVisible();
+    await page.setViewportSize({width:1440,height:900});await page.emulateMedia({reducedMotion:'reduce'});await expect(section).toHaveAttribute('data-motion','static');await expect(section.locator('[data-story-visual]')).toBeHidden();
+    for(const image of await section.locator('[data-story-static]').all())await expect(image).toBeVisible();
     await section.scrollIntoViewIfNeeded();await capture(page,'scroll-reduced',info);
     await page.emulateMedia({reducedMotion:'no-preference'});await expect(section).toHaveAttribute('data-motion','scroll');
   } else {
-    await expect(section).toHaveAttribute('data-motion','static');await expect(section.locator('.experience-static-image').first()).toBeVisible();await section.scrollIntoViewIfNeeded();await capture(page,'scroll-mobile-static',info);
-    for(const item of await section.locator('.experience-steps li').all()){await item.scrollIntoViewIfNeeded();await expect(item).toBeInViewport();}
+    await expect(section).toHaveAttribute('data-motion','static');await expect(section.locator('[data-story-static]').first()).toBeVisible();await section.scrollIntoViewIfNeeded();await capture(page,'scroll-mobile-static',info);
+    for(const item of await section.locator('[data-story-stage]').all()){await item.scrollIntoViewIfNeeded();await expect(item).toBeInViewport();}
     await section.getByRole('link',{name:'Choose your rhythm'}).click();await expect(page).toHaveURL(/#plan$/);await expect(page.locator('#plan')).toBeInViewport();
     await page.locator('#resource').scrollIntoViewIfNeeded();await expect(page.locator('#resource')).toBeInViewport();
   }

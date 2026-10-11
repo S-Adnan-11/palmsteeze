@@ -82,11 +82,11 @@ test('natural scrolling has a static mobile/reduced-motion fallback and preview 
   const section=page.locator('.workspace-experience');await expect(section).toHaveAttribute('data-motion',info.project.name==='desktop'?'scroll':'static');
   if(info.project.name==='desktop') {
     await page.evaluate(()=>{document.documentElement.style.scrollBehavior='auto';const section=document.querySelector('.workspace-experience')!;window.scrollTo(0,section.getBoundingClientRect().top+scrollY+section.getBoundingClientRect().height-innerHeight);});
-    await expect(section).toHaveAttribute('data-scene','2');
+    await expect(section.locator('[aria-current="step"]')).toHaveAttribute('data-story-stage','2');
     await page.screenshot({path:directory+'/motion-create-desktop.png'});
   }
   await page.emulateMedia({reducedMotion:'reduce'});await expect(section).toHaveAttribute('data-motion','static');
-  await expect.poll(()=>section.locator('.experience-layer').evaluateAll(nodes=>nodes.every(n=>getComputedStyle(n).opacity==='1'&&getComputedStyle(n).transform==='none'))).toBe(true);
+  await expect.poll(()=>section.locator('[data-story-scene]').evaluateAll(nodes=>nodes.every(n=>getComputedStyle(n).opacity==='1'&&getComputedStyle(n).transform==='none'))).toBe(true);
   await page.locator('#plan').scrollIntoViewIfNeeded();await page.getByRole('radio',{name:/Open desks/}).focus();await page.keyboard.press('ArrowRight');await expect(page.getByRole('radio',{name:/Quiet desks/})).toBeChecked();
   expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);
   await page.goto('/preview/admin');const requests:string[]=[];page.on('request',r=>{if(r.url().includes('/api/'))requests.push(r.url());});

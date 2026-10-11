@@ -30,17 +30,17 @@ test('grouped selectors manage keyboard focus, typeahead, disabled hours and tou
 });
 test('all workspace stages follow native scrolling; reduced motion stays static; shared preview is read-only',async({page},info)=>{
   await page.goto('/');await expect(page.getByRole('link',{name:'Find your space',exact:true})).toBeVisible();
-  const section=page.locator('.workspace-experience');await expect(section.locator('.experience-steps li')).toHaveCount(3);await expect(section).toContainText('Arrive. Take a little breath.');await expect(section).toContainText('Settle into your own desk.');await expect(section).toContainText('Gather around a good idea.');
+  const section=page.locator('.workspace-experience');await expect(section.locator('[data-story-stage]')).toHaveCount(3);await expect(section).toContainText('Arrive. Take a little breath.');await expect(section).toContainText('Settle into your own desk.');await expect(section).toContainText('Gather around a good idea.');
   if(info.project.name==='desktop') {
     await expect(section).toHaveAttribute('data-motion','scroll');
     for(const [progress,scene] of [[0,'0'],[.5,'1'],[1,'2']] as const) {
-      await section.evaluate((n,p)=>{const rect=n.getBoundingClientRect();const y=scrollY+rect.top-innerHeight*.15+p*(rect.height-innerHeight*.8);document.documentElement.style.scrollBehavior='auto';window.scrollTo(0,y);},progress);
-      await expect(section).toHaveAttribute('data-scene',scene);
+      await section.evaluate((n,p)=>{const panel=n.querySelector<HTMLElement>('[data-story-panel]')!;const y=scrollY+n.getBoundingClientRect().top-parseFloat(getComputedStyle(panel).top)+p*(n.getBoundingClientRect().height-panel.offsetHeight);window.scrollTo({top:y,behavior:'instant'});},progress);
+      await expect(section.locator('[aria-current="step"]')).toHaveAttribute('data-story-stage',scene);
     }
     await page.mouse.wheel(0,-150);await expect.poll(()=>page.evaluate(()=>scrollY)).toBeGreaterThan(0);
   } else await expect(section).toHaveAttribute('data-motion','static');
-  await page.emulateMedia({reducedMotion:'reduce'});await expect(section).toHaveAttribute('data-motion','static');await expect(section.locator('.experience-static-image').first()).toBeVisible();
-  await expect.poll(()=>section.locator('.experience-layer').evaluateAll(nodes=>nodes.every(n=>getComputedStyle(n).transform==='none'))).toBe(true);
+  await page.emulateMedia({reducedMotion:'reduce'});await expect(section).toHaveAttribute('data-motion','static');await expect(section.locator('[data-story-static]').first()).toBeVisible();
+  await expect.poll(()=>section.locator('[data-story-scene]').evaluateAll(nodes=>nodes.every(n=>getComputedStyle(n).transform==='none'))).toBe(true);
   await page.goto('/preview/admin');const requests:string[]=[];page.on('request',r=>{if(new URL(r.url()).pathname.startsWith('/api/'))requests.push(r.url());});
   await page.getByRole('combobox',{name:'Booking status filter'}).click();await page.getByRole('option',{name:'Cancelled',exact:true}).click();await expect(page.getByRole('listitem')).toHaveCount(2);
   await page.getByRole('button',{name:'Bookings',exact:true}).click();await expect(page.locator('#main')).toBeFocused();await expect(page.getByRole('heading',{level:1})).toHaveText('Every visit, in view.');

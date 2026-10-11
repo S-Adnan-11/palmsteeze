@@ -35,14 +35,14 @@ async function main() {
       const {page,errors}=await open(),section=page.locator('.workspace-experience');
       const environment=await page.evaluate(()=>({width:innerWidth,height:innerHeight,devicePixelRatio,reducedMotion:matchMedia('(prefers-reduced-motion: reduce)').matches}));
       if(!mobile&&preference==='no-preference') {
-        const bounds=await section.evaluate(node=>{const pinned=node.querySelector<HTMLElement>('.experience-sticky')!;return {start:scrollY+node.getBoundingClientRect().top-parseFloat(getComputedStyle(pinned).top),travel:node.getBoundingClientRect().height-pinned.offsetHeight};});
-        await page.evaluate(y=>scrollTo({top:y,behavior:'instant'}),bounds.start-120);await page.waitForTimeout(400);
+        const bounds=await section.evaluate(node=>{const pinned=node.querySelector<HTMLElement>('[data-story-panel]')!;return {start:scrollY+node.getBoundingClientRect().top-parseFloat(getComputedStyle(pinned).top),travel:node.getBoundingClientRect().height-pinned.offsetHeight};});
+        await page.evaluate(y=>scrollTo({top:y,behavior:'instant'}),bounds.start-viewport.height*.65);await page.waitForTimeout(900);
         const frames=[];
-        for(const direction of [1,-1])for(let index=0;index<90;index++) {
-          await page.mouse.wheel(0,direction*(bounds.travel+240)/90);await page.waitForTimeout(65);
-          const frame=await section.evaluate(node=>({y:scrollY,scene:(node as HTMLElement).dataset.scene,top:node.querySelector('.experience-sticky')!.getBoundingClientRect().top,opacity:[...node.querySelectorAll('.experience-layer')].map(layer=>Number(getComputedStyle(layer).opacity))}));
+        for(const direction of [1,-1])for(let index=0;index<160;index++) {
+          await page.mouse.wheel(0,direction*(bounds.travel+viewport.height*1.3)/160);await page.waitForTimeout(85);
+          const frame=await section.evaluate(node=>({y:scrollY,scene:node.querySelector('[aria-current="step"]')?.getAttribute('data-story-stage')||undefined,top:node.querySelector('[data-story-panel]')!.getBoundingClientRect().top,opacity:[...node.querySelectorAll('[data-story-scene]')].map(layer=>Number(getComputedStyle(layer).opacity))}));
           frames.push({direction,...frame});
-          if(direction===1&&[7,45,82].includes(index)){await page.waitForTimeout(250);await capture(page,['arrive','settle','gather'][[7,45,82].indexOf(index)]+'-'+mode);}
+          if(direction===1&&[40,80,120].includes(index)){await page.waitForTimeout(250);await capture(page,['arrive','settle','gather'][[40,80,120].indexOf(index)]+'-'+mode);}
         }
         proof.push({mode,environment,bounds,frames,runtimeErrors:errors});
       } else {
