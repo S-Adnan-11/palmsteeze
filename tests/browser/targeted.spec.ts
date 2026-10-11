@@ -13,6 +13,9 @@ import {capture,record} from './targeted-artifacts';
 import {sandboxCards} from '../../src/lib/sandbox-cards';
 
 const origin='http://localhost:3000';
+const runtimeErrors=new WeakMap<Page,string[]>();
+test.beforeEach(async({page})=>{const errors:string[]=[];runtimeErrors.set(page,errors);page.on('pageerror',error=>errors.push(error.message));page.on('console',message=>{if(message.type()==='error'&&!message.text().startsWith('Failed to load resource'))errors.push(message.text());});});
+test.afterEach(async({page},info)=>{const errors=runtimeErrors.get(page)||[];record(`runtime-${info.title.slice(0,36).replace(/[^a-z0-9-]/gi,'-')}-${info.project.name}.json`,{uncaughtAndFrameworkErrors:errors,transportErrors:'Expected controlled/provider HTTP faults are separate'});expect(errors,'uncaught browser errors').toEqual([]);});
 let db:Client,admin:ReturnType<typeof createClient>,user:{id:string;email:string;password:string},resource:string,destination:string;
 test.beforeAll(async({browserName},info)=>{
   expect(browserName).toBe('chromium');
@@ -89,6 +92,40 @@ async function accessible(page:Page) {
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
   expect((await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze()).violations).toEqual([]);
 }
+test('administration shared filters and action selectors preserve geometry contents dismissal and focus',async({page,context},info)=>{
+  await enter(page,context);await signIn(context);
+  await db.query("insert into private.app_roles(user_id,role) values($1,'admin')",[user.id]);
+  const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));
+  const proof=[];
+  try {
+    for(const [path,label] of [['/admin/bookings','Booking status filter'],['/admin/availability','Space'],['/admin/spaces','Resource status']]) {
+      await page.goto(path);
+      if(path==='/admin/spaces')await page.locator('details.resource-detail').first().locator('summary').click();
+      await page.evaluate(async()=>{await document.fonts.ready;await Promise.all(document.getAnimations().filter(animation=>animation.effect?.getTiming().iterations!==Infinity).map(animation=>animation.finished.catch(()=>{})));});
+      const id=await page.getByRole('combobox',{name:label,exact:true}).first().getAttribute('id');
+      const trigger=page.locator(`[id="${id}"]`);
+      await trigger.evaluate(node=>scrollTo({top:scrollY+node.getBoundingClientRect().top-120,behavior:'instant'}));
+      await page.waitForTimeout(60);
+      const before=await trigger.boundingBox(),y=await page.evaluate(()=>scrollY);
+      let contents:string[]=[];
+      for(const dismissal of ['Escape','outside','trigger']) {
+        await trigger.click();const panel=page.locator('.brand-popup');await expect(panel).toBeVisible();
+        const list=page.locator('.brand-select-viewport'),box=await list.boundingBox();
+        const items=await page.locator('.brand-select-item').allTextContents();if(contents.length)expect(items).toEqual(contents);contents=items;
+        await list.hover();await page.mouse.wheel(0,240);await page.waitForTimeout(180);expect(await list.boundingBox()).toEqual(box);
+        expect(await trigger.boundingBox()).toEqual(before);expect(await page.evaluate(()=>scrollY)).toBe(y);
+        const popup=(await panel.boundingBox())!;expect(popup.x).toBeGreaterThanOrEqual(11);expect(popup.y).toBeGreaterThanOrEqual(11);expect(popup.x+popup.width).toBeLessThanOrEqual(page.viewportSize()!.width-11);
+        if(dismissal==='Escape')await page.keyboard.press('Escape');
+        else if(dismissal==='outside')await page.mouse.click(3,3);
+        else {const b=(await trigger.boundingBox())!;await page.mouse.click(b.x+10,b.y+10);}
+        await expect(panel).toHaveCount(0);await expect(trigger).toBeFocused();expect(await trigger.boundingBox()).toEqual(before);expect(await page.evaluate(()=>scrollY)).toBe(y);
+      }
+      proof.push({path,label,stableGeometry:true,stableContents:true,dismissals:['Escape','outside','trigger'],focusRestored:true});
+    }
+    expect(errors).toEqual([]);
+    record(`admin-shared-controls-${info.project.name}.json`,{kind:'Actual administration pages with an isolated assigned-admin Auth fixture; no business mutations, identity capture or owner acceptance',proof,runtimeErrors:errors});
+  }finally{await db.query('delete from private.app_roles where user_id=$1',[user.id]);}
+});
 async function controlledWidget(page:Page) {
   await page.route('https://challenges.cloudflare.com/turnstile/v0/api.js*',route=>route.fulfill({contentType:'application/javascript',body:`(()=>{
     let serial=0;const widgets=new Map();window.widgetEvents=[];
