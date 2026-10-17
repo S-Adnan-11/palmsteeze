@@ -16,7 +16,14 @@ export function BrandDate({value,onChange,disabled,settings}:{value:string;onCha
   useEffect(()=>{if(disabled)setOpen(false);},[disabled]);
   const now=new Date();const range=bookingDateRange(settings,now);
   const zoned=(day:string)=>new TZDate(day+'T12:00:00+01:00','Africa/Lagos');
-  const eligible=(day:string)=>Boolean(dateOnly(day)&&eligibleHours(day,settings,now).length);
+  // DayPicker asks about each day several times. This render's rules and clock
+  // are fixed; a fresh map on every render preserves their existing freshness.
+  const eligibility=new Map<string,boolean>();
+  const eligible=(day:string)=>{
+    if(eligibility.has(day))return eligibility.get(day)!;
+    const value=Boolean(dateOnly(day)&&eligibleHours(day,settings,now).length);
+    eligibility.set(day,value);return value;
+  };
   const selected=dateOnly(value)?zoned(value):undefined;
   const [month,setMonth]=useState<Date|undefined>(undefined);
   function changeOpen(next:boolean) {

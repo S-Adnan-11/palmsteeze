@@ -1,0 +1,4 @@
+import {defineConfig} from '@playwright/test';
+import base from './playwright.config';
+if(!process.env.PALMSTEEZE_RELEASE_ROOT)throw new Error('Private release evidence root required.');
+export default defineConfig({...base,testDir:'./.tools/release-tests',testMatch:process.env.PALMSTEEZE_RELEASE_SUITES?.split(',')||['release.spec.ts'],outputDir:process.env.PALMSTEEZE_RELEASE_ROOT+'/test-results',reporter:[['list'],['json',{outputFile:process.env.PALMSTEEZE_RELEASE_ROOT+'/results.json'}],['html',{open:'never',outputFolder:process.env.PALMSTEEZE_RELEASE_ROOT+'/browser-report'}]],use:{...base.use,trace:'off',screenshot:'off',video:'off',launchOptions:{args:['--host-resolver-rules=MAP localhost 127.0.0.1']}},webServer:{...(base.webServer as {command:string;url:string}),url:'http://localhost:3000/api/verification',env:{NEXT_TELEMETRY_DISABLED:'1'}}});

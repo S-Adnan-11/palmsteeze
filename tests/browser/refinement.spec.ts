@@ -76,22 +76,18 @@ test('loading, unavailable hours, read errors and delayed results cannot promise
   findings[info.project.name+'-faults']={status:'PASSED',faults:'Controlled browser delays, 503 and empty slots; no provider outage claim'};
 });
 
-test('natural scrolling has a static mobile/reduced-motion fallback and preview stays isolated',async({page},info)=>{
+test('native scrolling and reduced-motion still preserve the isolated preview',async({page},info)=>{
   mkdirSync(directory,{recursive:true});await page.goto('/');await page.evaluate(()=>document.fonts.ready);
   await page.screenshot({path:directory+'/home-'+info.project.name+'.png',fullPage:true,animations:'disabled',style:'.skip-link:not(:focus){visibility:hidden !important}'});
-  const section=page.locator('.workspace-experience');await expect(section).toHaveAttribute('data-motion',info.project.name==='desktop'?'scroll':'static');
-  if(info.project.name==='desktop') {
-    await page.evaluate(()=>{document.documentElement.style.scrollBehavior='auto';const section=document.querySelector('.workspace-experience')!;window.scrollTo(0,section.getBoundingClientRect().top+scrollY+section.getBoundingClientRect().height-innerHeight);});
-    await expect(section.locator('[aria-current="step"]')).toHaveAttribute('data-story-stage','2');
-    await page.screenshot({path:directory+'/motion-create-desktop.png'});
-  }
-  await page.emulateMedia({reducedMotion:'reduce'});await expect(section).toHaveAttribute('data-motion','static');
-  await expect.poll(()=>section.locator('[data-story-scene]').evaluateAll(nodes=>nodes.every(n=>getComputedStyle(n).opacity==='1'&&getComputedStyle(n).transform==='none'))).toBe(true);
+  const section=page.locator('.workspace-experience');await expect(section).toHaveAttribute('data-motion','time');
+  await expect(section).toHaveAttribute('data-scene-status','ready');
+  await page.emulateMedia({reducedMotion:'reduce'});await expect(section).toHaveAttribute('data-motion','reduced');
+  await expect(section.locator('[data-story-visual]')).toHaveAttribute('data-render-state','paused');
   await page.locator('#plan').scrollIntoViewIfNeeded();await page.getByRole('radio',{name:/Open desks/}).focus();await page.keyboard.press('ArrowRight');await expect(page.getByRole('radio',{name:/Quiet desks/})).toBeChecked();
   expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)).toBe(false);
   await page.goto('/preview/admin');const requests:string[]=[];page.on('request',r=>{if(r.url().includes('/api/'))requests.push(r.url());});
   await page.getByRole('button',{name:'Refunds & recovery',exact:true}).click();await expect(page.getByRole('heading',{name:'A cancelled visit. An unresolved refund.'})).toBeVisible();
   await page.getByRole('button',{name:'Audit',exact:true}).click();expect(await page.locator('form').count()).toBe(0);expect(requests).toEqual([]);
-  findings[info.project.name+'-motion-preview']={status:'PASSED',motion:info.project.name==='desktop'?'Scroll updates + reduced-motion static':'Static mobile',nativeRadioKeyboard:'PASSED',preview:'No API requests or forms',physicalPhone:'NOT RUN'};
+  findings[info.project.name+'-motion-preview']={status:'PASSED',motion:'Time-driven 3D on every viewport; reduced-motion still',nativeRadioKeyboard:'PASSED',preview:'No API requests or forms',physicalPhone:'NOT RUN'};
 });
 test.afterAll(()=>{const dir=process.env.PALMSTEEZE_BROWSER_MODE==='polish'?'docs/evidence/m4-polish':'docs/evidence/m4-refinement';mkdirSync(dir,{recursive:true});writeFileSync(dir+'/browser-'+test.info().project.name+'.json',JSON.stringify({checkedAt:new Date().toISOString(),...findings},null,2));});

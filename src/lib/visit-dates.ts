@@ -1,3 +1,6 @@
+const calendarDate = new Intl.DateTimeFormat('en-GB',{timeZone:'UTC',weekday:'short',day:'numeric',month:'short',year:'numeric'});
+const watDate = new Intl.DateTimeFormat('en-GB',{timeZone:'Africa/Lagos',weekday:'short',day:'numeric',month:'short',year:'numeric'});
+const watTime = new Intl.DateTimeFormat('en-GB',{timeZone:'Africa/Lagos',hour:'2-digit',minute:'2-digit',hourCycle:'h23'});
 // A visit date is a Lagos calendar day, never the browser's local midnight.
 export function dateOnly(value:string) {
   if(!/^\d{4}-\d{2}-\d{2}$/.test(value)) return undefined;
@@ -6,7 +9,7 @@ export function dateOnly(value:string) {
 }
 export function formatVisitDate(value:string) {
   const date=dateOnly(value);
-  return date?new Intl.DateTimeFormat('en-GB',{timeZone:'UTC',weekday:'short',day:'numeric',month:'short',year:'numeric'}).format(date):'Choose a date';
+  return date?calendarDate.format(date):'Choose a date';
 }
 export function dateEntry(value:string) {
   return dateOnly(value)?value.slice(8,10)+'/'+value.slice(5,7)+'/'+value.slice(0,4):'';
@@ -18,11 +21,10 @@ export function parseDateEntry(value:string) {
 }
 export function formatWatDateTime(value:string) {
   const date=new Date(value);
-  const day=new Intl.DateTimeFormat('en-GB',{timeZone:'Africa/Lagos',weekday:'short',day:'numeric',month:'short',year:'numeric'}).format(date);
-  const time=new Intl.DateTimeFormat('en-GB',{timeZone:'Africa/Lagos',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(date);
+  const day=watDate.format(date);
+  const time=watTime.format(date);
   return day+' · '+time+' WAT';
 }
 export function formatWatVisitTime(startsAt:string,endsAt:string) {
-  const time=new Intl.DateTimeFormat('en-GB',{timeZone:'Africa/Lagos',hour:'2-digit',minute:'2-digit',hourCycle:'h23'});
-  return formatWatDateTime(startsAt).split(' · ')[0]+' · '+time.format(new Date(startsAt))+'–'+time.format(new Date(endsAt))+' WAT';
+  return formatWatDateTime(startsAt).split(' · ')[0]+' · '+watTime.format(new Date(startsAt))+'–'+watTime.format(new Date(endsAt))+' WAT';
 }

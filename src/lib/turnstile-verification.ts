@@ -3,10 +3,10 @@ import { reservationAction,turnstileConfiguration,type TurnstileAction } from '.
 export type Verification = {ok:true}|{ok:false;status:403|503;error:string};
 const retry = 'Security verification failed or expired. Retry the security check; your visit choices are saved.';
 // Pure boundary for deterministic provider faults. The application wrapper is server-only.
-export async function verifyTurnstileToken(token:unknown,env:Record<string,string|undefined>,action:TurnstileAction,fetcher:typeof fetch=fetch,now=Date.now()):Promise<Verification> {
+export async function verifyTurnstileToken(token:unknown,env:Record<string,string|undefined>,action:TurnstileAction,fetcher:typeof fetch=fetch,now=Date.now(),origin?:string):Promise<Verification> {
   if (typeof token!=='string'||!token.trim()||token.length>2048) return {ok:false,status:403,error:'Complete the security check before reserving. Your visit choices are saved.'};
   let config:ReturnType<typeof turnstileConfiguration>;
-  try { config=turnstileConfiguration(env); }
+  try { config=turnstileConfiguration(env,origin); }
   catch { return {ok:false,status:503,error:'Reservation security is unavailable. Keep your selection and try again later.'}; }
   try {
     // Do not forward caller-supplied IPs or identities. Siteverify enforces single use.
@@ -32,6 +32,6 @@ export async function verifyTurnstileToken(token:unknown,env:Record<string,strin
     return {ok:true};
   } catch { return {ok:false,status:503,error:'Security verification could not be reached. Retry the security check; your visit choices are saved.'}; }
 }
-export function verifyReservationToken(token:unknown,env:Record<string,string|undefined>,fetcher:typeof fetch=fetch,now=Date.now()) {
-  return verifyTurnstileToken(token,env,reservationAction,fetcher,now);
+export function verifyReservationToken(token:unknown,env:Record<string,string|undefined>,fetcher:typeof fetch=fetch,now=Date.now(),origin?:string) {
+  return verifyTurnstileToken(token,env,reservationAction,fetcher,now,origin);
 }

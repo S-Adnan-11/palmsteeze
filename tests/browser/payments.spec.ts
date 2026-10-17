@@ -1,4 +1,4 @@
-import {reservationHeaders,waitForReservationSecurity} from './reservation-security';
+import {ensureEntrance,reservationHeaders,waitForReservationSecurity} from './reservation-security';
 import { test,expect,type BrowserContext,type Page } from '@playwright/test';
 import { createClient,type SupabaseClient } from '@supabase/supabase-js';
 import { createServerClient } from '@supabase/ssr';
@@ -21,6 +21,7 @@ type User={id:string;email:string;password:string};
 let db:Client;let stripe:Stripe;let admin:SupabaseClient;
 const users:User[]=[];const bookings:string[]=[];const evidence:Record<string,unknown>={};let resources:Record<string,string>;
 async function signIn(context:BrowserContext,user:User) {
+ await ensureEntrance(context);
  const jar=new Map<string,string>();const client=createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!,process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,{
   cookies:{getAll:()=>[...jar].map(([name,value])=>({name,value})),setAll:values=>values.forEach(({name,value})=>jar.set(name,value))}});
  const signed=await client.auth.signInWithPassword({email:user.email,password:user.password});expect(Boolean(signed.data.session)).toBe(true);
@@ -28,7 +29,7 @@ async function signIn(context:BrowserContext,user:User) {
  await context.addCookies([...jar].filter(([,v])=>v).map(([name,value])=>({name,value,url:origin,httpOnly:true,secure:false,sameSite:'Lax' as const})));
 }
 async function pay(page:Page) {
- await page.getByRole('link',{name:'Continue to secure Stripe sandbox checkout'}).click();
+ await page.getByRole('link',{name:'Continue to test payment'}).click();
  await page.locator('#email').fill(`m2-${randomUUID()}@palmsteeze.invalid`);
  await page.locator('#cardNumber').fill('4242424242424242');await page.locator('#cardExpiry').fill('1234');await page.locator('#cardCvc').fill('123');
  if(await page.locator('#billingName').isVisible()) await page.locator('#billingName').fill('PalmSteeze sandbox fixture');
@@ -95,8 +96,8 @@ test('real authenticated review checkout confirmation history isolation and late
  await expect(page.locator('.reservation-notice')).toContainText('Temporarily reserved · complete checkout by '+formatWatDateTime(pendingPayment.provider_expires_at));
  await expect(page.locator('.reservation-notice')).toContainText('Payment is not confirmed yet.');
  mkdirSync('docs/screenshots/m4-journey/after',{recursive:true});await page.screenshot({path:'docs/screenshots/m4-journey/after/sandbox-reservation-'+info.project.name+'.png',fullPage:true,animations:'disabled'});
- await page.goto(`/booking/${id}?checkout=cancelled`);await expect(page.getByTestId('booking-state')).toContainText('held');await expect(page.getByRole('heading',{name:'Payment not confirmed yet',exact:true})).toBeVisible();await expect(page.getByRole('link',{name:'Continue to secure Stripe sandbox checkout'})).toHaveAttribute('href',pendingPayment.checkout_url);
- const other=await browser.newContext({baseURL:origin});const anon=await browser.newContext({baseURL:origin});
+ await page.goto(`/booking/${id}?checkout=cancelled`);await expect(page.getByTestId('booking-state')).toContainText('held');await expect(page.getByRole('heading',{name:'Payment not confirmed yet',exact:true})).toBeVisible();await expect(page.getByRole('link',{name:'Continue to test payment'})).toHaveAttribute('href',pendingPayment.checkout_url);
+ const other=await browser.newContext({baseURL:origin});const anon=await browser.newContext({baseURL:origin});await ensureEntrance(anon);
  try {
   await signIn(other,users[1]);expect((await other.request.get(`/api/bookings/${id}`)).status()).toBe(404);
   expect((await other.request.delete(`/api/bookings/${id}/checkout`,{headers})).status()).toBe(403);
@@ -163,7 +164,7 @@ test('real authenticated review checkout confirmation history isolation and late
    const stoppedSelection={...selection,resource:resources['OPEN-15'],hour:12};await page.goto(visitDestination(stoppedSelection));
    const stopResult=page.waitForResponse(r=>r.url().endsWith('/api/checkout')&&r.request().method()==='POST');await waitForReservationSecurity(page);await page.getByRole('button',{name:'Continue to test payment'}).click();const stoppedResponse=await stopResult;expect([201,202]).toContain(stoppedResponse.status());const stoppedID=(await stoppedResponse.json()).booking.id;bookings.push(stoppedID);
    await expect(page).toHaveURL(new RegExp('/booking/'+stoppedID));await expect(page.getByTestId('payment-state')).toContainText('open');await page.getByRole('button',{name:'Stop unpaid checkout'}).click();
-   await expect(page.getByTestId('payment-state')).toContainText('expired',{timeout:60000});await expect(page.getByRole('heading',{name:'Checkout ended without payment',exact:true})).toBeVisible();await expect(page.getByRole('link',{name:'Continue to secure Stripe sandbox checkout'})).toHaveCount(0);
+   await expect(page.getByTestId('payment-state')).toContainText('expired',{timeout:60000});await expect(page.getByRole('heading',{name:'Checkout ended without payment',exact:true})).toBeVisible();await expect(page.getByRole('link',{name:'Continue to test payment'})).toHaveCount(0);
    const stoppedAttempt=(await db.query('select session_id,collected_kobo from public.payment_attempts where booking_id=$1',[stoppedID])).rows[0];const ended=await stripe.checkout.sessions.retrieve(stoppedAttempt.session_id);expect(ended.status).toBe('expired');expect(ended.payment_status).toBe('unpaid');expect(Number(stoppedAttempt.collected_kobo)).toBe(0);
    await page.screenshot({path:`docs/screenshots/m4-journey/after/sandbox-stopped-${info.project.name}.png`,fullPage:true,style:'.skip-link:not(:focus){visibility:hidden!important}'});evidence.verifiedUnpaidCheckoutStop='PASSED';
    evidence.scope='Focused checkout, confirmation, customer restrictions, cancellation request, verified unpaid stop and genuine provider cleanup. Historical late-payment/lost-response fault gates are not rerun in this scope.';

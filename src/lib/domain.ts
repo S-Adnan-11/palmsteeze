@@ -11,7 +11,7 @@ export type Quote = {
   hourly_kobo: number; total_kobo: number; deposit_percent: number; deposit_kobo: number; balance_kobo: number;
 };
 export const workingDefaults: VenueSettings = {
-  name: 'PalmSteeze Workspaces', district: 'Lekki, Lagos', timezone: 'Africa/Lagos', currency: 'NGN',
+  name: 'PalmSteeze Workspaces', district: 'Agege, Lagos', timezone: 'Africa/Lagos', currency: 'NGN',
   opens_hour: 8, closes_hour: 20, open_weekdays: [1,2,3,4,5,6], horizon_days: 30,
   lead_hours: 1, deposit_percent: 40, hold_minutes: 30, defaults_proposed: true,checkout_minutes:35,
 };
@@ -35,8 +35,9 @@ export function workingQuote(hourlyKobo: number, hours: number, percent: number)
   if (total > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error('Quote exceeds safe amount');
   return {total_kobo:Number(total),deposit_kobo:Number(deposit),balance_kobo:Number(total-deposit)};
 }
+const lagosCalendarDate = new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Lagos',year:'numeric',month:'2-digit',day:'2-digit'});
 export function lagosDate(now: Date) {
-  return new Intl.DateTimeFormat('en-CA',{timeZone:'Africa/Lagos',year:'numeric',month:'2-digit',day:'2-digit'}).format(now);
+  return lagosCalendarDate.format(now);
 }
 export function initialBookingDate(now = new Date()) {
   const candidate = new Date(now.getTime() + 86400000);

@@ -1,3 +1,4 @@
+import {requestAppOrigin} from '@/lib/deployment';
 import { authenticatedContext } from '@/lib/supabase/server';
 import { customerBooking } from '@/lib/payments';
 import { sameOrigin,databaseError,jsonError } from '@/lib/http';
@@ -23,7 +24,7 @@ export async function POST(request:Request) {
     } catch {return jsonError('Provide a valid selection, request ID and reviewed quote.',400);}
     const verification=await reservationVerification(request);if(verification) return verification;
     const amount=body.amountKobo!==undefined?Number(body.amountKobo):null;
-    const capability=reservationCapability({userId:user.id,operation:'checkout',resourceId:body.resourceId,startsAt:body.startsAt,endsAt:body.endsAt,requestId:body.requestId,expectedQuote:expected,amountKobo:amount},process.env);
+    const capability=reservationCapability({userId:user.id,operation:'checkout',resourceId:body.resourceId,startsAt:body.startsAt,endsAt:body.endsAt,requestId:body.requestId,expectedQuote:expected,amountKobo:amount},process.env,Date.now(),requestAppOrigin(request,process.env));
     const result=await client.rpc('begin_verified_checkout',{p_resource:body.resourceId,p_start:body.startsAt,p_end:body.endsAt,p_request:body.requestId,p_expected:expected,p_amount:amount,p_capability:capability});
     if(result.error) return result.error.code==='P0001' ? jsonError('The quote changed. Review the new price before checkout.',409):databaseError(result.error.code);
     const detail=await customerBooking(client,result.data.booking.id);

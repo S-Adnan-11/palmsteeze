@@ -2,21 +2,23 @@ import { createServerClient,type CookieOptions } from '@supabase/ssr';
 import { NextResponse,type NextRequest } from 'next/server';
 import { publicConfiguration } from '@/lib/supabase/server';
 import { authCookieOptions,privateHeaders } from '@/lib/auth/config';
-import {appOrigin} from '@/lib/auth/config';
+import {requestAppOrigin} from '@/lib/deployment';
 import {clearanceCookie,validClearance} from '@/lib/security-sessions';
-import {entranceDestination,entranceExempt} from '@/lib/entrance';
+import {entranceDestination,entranceExempt,publicAsset} from '@/lib/entrance';
 
 export async function proxy(request:NextRequest) {
   const path=request.nextUrl.pathname;
-  const canonicalHost=new URL(appOrigin()).host;
-  if(path==='/verify'&&request.headers.get('host')!==canonicalHost) return NextResponse.redirect(new URL(path+request.nextUrl.search,appOrigin()));
-  if(!entranceExempt(path)&&(!validClearance(request.cookies.get(clearanceCookie)?.value,process.env)||request.headers.get('host')!==canonicalHost)) {
+  if(publicAsset(path))return NextResponse.next();
+  let origin:string;
+  try {origin=requestAppOrigin(request,process.env);}
+  catch {return new NextResponse('Unknown or conflicting application origin.',{status:403,headers:privateHeaders()});}
+  if(!entranceExempt(path)&&!validClearance(request.cookies.get(clearanceCookie)?.value,process.env,Date.now(),origin)) {
     if(path.startsWith('/api/')||!['GET','HEAD'].includes(request.method)) {
       const response=NextResponse.json({error:'Entrance verification is required or has expired. Verify again, then retry your request.',entranceRequired:true,verificationPath:'/verify'},{status:403});
       privateHeaders(response.headers);return response;
     }
     const destination=entranceDestination(path+request.nextUrl.search)||'/';
-    const url=new URL('/verify',appOrigin());url.searchParams.set('next',destination);
+    const url=new URL('/verify',origin);url.searchParams.set('next',destination);
     const response=NextResponse.redirect(url,307);privateHeaders(response.headers);return response;
   }
   if(entranceExempt(path)) return NextResponse.next();
@@ -30,13 +32,13 @@ export async function proxy(request:NextRequest) {
   try {config = publicConfiguration();} catch {privateHeaders(response.headers);return response;}
   if (config && request.cookies.getAll().some((c) => c.name.startsWith('sb-'))) {
     const pendingCookies = new Map<string,{value:string;options:CookieOptions}>();
-    const client = createServerClient(config.url,config.key,{cookieOptions:authCookieOptions(),global:{fetch:(input,init) => fetch(input,{...init,cache:'no-store'})},cookies:{
+    const client = createServerClient(config.url,config.key,{cookieOptions:authCookieOptions(origin),global:{fetch:(input,init) => fetch(input,{...init,cache:'no-store'})},cookies:{
       getAll:() => request.cookies.getAll(),
       setAll:(items,headers) => {
         items.forEach(({name,value}) => request.cookies.set(name,value));
         items.forEach(({name,value,options}) => pendingCookies.set(name,{value,options}));
         response = NextResponse.next({request});
-        pendingCookies.forEach(({value,options},name) => response.cookies.set(name,value,{...options,...authCookieOptions()}));
+        pendingCookies.forEach(({value,options},name) => response.cookies.set(name,value,{...options,...authCookieOptions(origin)}));
         Object.entries(headers).forEach(([name,value]) => response.headers.set(name,value));
       },
     }});

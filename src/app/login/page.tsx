@@ -27,11 +27,9 @@ export default async function Login({searchParams}:{searchParams:Promise<Record<
   const back=selection?editVisitDestination(selection):'/';
   const message = !next ? messages['invalid-destination'] : params.message==='booking-required'&&selection?undefined:params.message==='cancelled'&&!selection?'Sign-in cancelled. Try again or keep browsing.':typeof params.message === 'string' ? messages[params.message] : undefined;
   return <><SiteHeader/><main id="main" tabIndex={-1} className="customer-page login-page"><aside className="login-brand"><Image src="/brand/v2/secondary-stacked-forest.svg" width={230} height={250} alt="PalmSteeze upright workspace logo"/><h2>A little space.<br/><em>A fresh perspective.</em></h2><p>Room to focus. Space to connect.</p></aside><section className="login-content"><h1>Welcome to <em>PalmSteeze.</em></h1>
-    <p>Sign in to review a visit or view your bookings.</p>
+    {/* <p>Sign in to book a visit.</p> */}
     {message && <p className="auth-notice" role="status">{message}</p>}
     {selection&&<div className="signin-selection"><p className="eyebrow">Your selection</p><strong>{resource?.name||'Your selected workspace'}</strong><p>{formatVisitDate(selection.date)} · {String(selection.hour).padStart(2,'0')}:00–{String(selection.hour+selection.duration).padStart(2,'0')}:00 WAT · {selection.duration} {selection.duration===1?'hour':'hours'}</p><Link href={back}>Edit space, date or hours ↗</Link><p className="field-help">No space reserved yet.</p></div>}
     <GoogleSignIn next={next || '/account'}/>
-    
-    <p className="policy-links"><Link href="/privacy">Privacy notice</Link>, <Link href="/cookies">Cookie information</Link> and <Link href="/terms">Demo Terms</Link>.</p>
-    <Link href={back}>Keep browsing</Link></section></main><SiteFooter/></>;
+    </section></main><SiteFooter/></>;
 }

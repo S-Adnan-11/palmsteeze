@@ -12,7 +12,6 @@ body { padding-bottom: var(--cookie-banner-space,0px); }
 .entrance-policies a,.cookie-banner a,.cookie-dialog a { text-decoration: underline; text-underline-offset: 4px; font-size: 13px; }
 .entrance-policies a { display: inline-flex; align-items: center; min-height: 44px; }
 .entrance-footer { color: var(--muted); font-size: 12px; padding: 16px 10px; text-align: center; }
-.cookie-settings-link { background: none; color: inherit; border: 0; font-size: inherit; padding: 0; min-height: 44px; text-align: left; text-decoration: underline; text-underline-offset: 4px; }
 .cookie-banner { position: fixed; z-index: 65; inset: auto 20px 20px; margin: auto; max-width: 1220px; border: 1px solid #a9b6a5; border-radius: var(--panel-radius); padding: 20px 24px; background: var(--surface); box-shadow: 0 8px 40px #172a2324; display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 12px 28px; align-items: center; }
 .cookie-banner p { font-size: 13px; margin-bottom: 0; max-width: 54ch; }
 .cookie-banner-actions { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
@@ -45,3 +44,12 @@ body { padding-bottom: var(--cookie-banner-space,0px); }
   .cookie-dialog-actions { display: grid; }
 }
 @media (prefers-reduced-motion: reduce) { .entrance-page,.cookie-banner,.cookie-dialog { scroll-behavior: auto; animation: none; transition: none; } }
+
+.cookie-page-settings { margin-block: 24px; padding: 20px; border: 1px solid var(--line); border-radius: var(--panel-radius); }
+.cookie-page-settings > [role=status] { margin: 16px 0 0; }
+.footer-brand { flex: 0 0 auto; }
+.site-footer nav { margin-left: auto; }
+.footer-socials { display: flex; align-items: center; gap: 18px; margin-left: auto; color: var(--muted); pointer-events: none; }
+.footer-socials span { display: inline-flex; width: 20px; height: 20px; }
+.footer-socials svg { width: 100%; height: 100%; fill: currentColor; }
+@media(max-width:760px) { .site-footer nav { margin-left: 0; } .footer-socials { margin-left: 0; width: 100%; gap: 24px; } .cookie-page-settings { padding: 16px; } }

@@ -40,7 +40,7 @@ test('customer preview: filters, quote, keyboard, mobile layout and accessibilit
 });
 
 test('unauthenticated APIs cannot allocate, release, inspect private history or close inventory',async ({request}) => {
-  const headers = {Origin:'http://127.0.0.1:3000'};
+  const headers = {Origin:'http://localhost:3000'};
   const hold = await request.post('/api/holds',{headers,data:{ownerId:'forged',role:'admin',price:1}});
   expect(hold.status()).toBe(401);
   expect((await request.get('/api/holds')).status()).toBe(401);

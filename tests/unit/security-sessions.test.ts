@@ -23,9 +23,10 @@ test('preference version and lifetime are separate from clearance and drafts',()
 });
 test('entrance destination and asset exceptions do not create alternate-route bypasses',()=>{
   assert.equal(entranceDestination('/booking/new?resource=abc&date=2026-10-19#review'),'/booking/new?resource=abc&date=2026-10-19#review');
-  for(const value of ['https://evil.example','//evil.example','/\\evil','/verify?next=/verify','/api/checkout','/auth/callback','/%2f%2fevil','/account%0a'])assert.equal(entranceDestination(value),null);
+  for(const value of ['https://evil.example','//evil.example','/\\evil','/verify?next=/verify','/api/checkout','/auth/callback','/%2f%2fevil','/account%0a','/booking/../account','/booking/%2e%2e/account'])assert.equal(entranceDestination(value),null);
   for(const path of ['/privacy','/cookies','/terms','/verify','/api/verification','/api/preferences','/auth/callback','/_next/static/a.js','/fonts/manrope.woff','/brand/v2/small-symbol-forest.svg'])assert.equal(entranceExempt(path),true);
-  for(const path of ['/','/account','/preview/admin','/api/holds','/api/checkout','/account/file.js','/api/checkout.png','/auth/start','/privacy/private'])assert.equal(entranceExempt(path),false);
+  for(const path of ['/art/workspace-video/workspace-desktop.mp4','/art/workspace-video/workspace-tablet.mp4','/art/workspace-video/workspace-mobile.mp4'])assert.equal(entranceExempt(path),true);
+  for(const path of ['/','/account','/preview/admin','/api/holds','/api/checkout','/account/file.js','/api/checkout.png','/auth/start','/privacy/private','/account/private.mp4','/api/checkout.mp4','/art/workspace-video/private.mp4','/art/workspace-video/workspace-desktop.mp4/private'])assert.equal(entranceExempt(path),false);
 });
 test('entrance and reservation actions cannot be interchanged at Siteverify',async()=>{
   const fetcher:typeof fetch=async()=>Response.json({success:true,hostname:'localhost',action:'reserve',challenge_ts:new Date(now).toISOString()});

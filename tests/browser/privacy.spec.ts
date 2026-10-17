@@ -69,7 +69,7 @@ test('policy navigation, narrow layouts, storage, reduced motion and preview iso
   }
   await page.setViewportSize({width:320,height:800});await page.goto('/privacy');await capture(page,`privacy-narrow-${info.project.name}`);
   await page.getByRole('navigation',{name:'On this page'}).getByRole('link',{name:'Your choices & rights'}).click();await expect(page).toHaveURL(/#rights$/);
-  await page.emulateMedia({reducedMotion:'reduce'});await page.goto('/');await expect(page.locator('.workspace-experience')).toHaveAttribute('data-motion','static');
+  await page.emulateMedia({reducedMotion:'reduce'});await page.goto('/');await expect(page.locator('.workspace-experience')).toHaveAttribute('data-motion','reduced');
   await page.getByRole('link',{name:'Skip to content'}).focus();await page.keyboard.press('Enter');await expect(page.locator('main')).toBeFocused();
   await page.getByLabel('Your space',{exact:true}).click();await page.keyboard.press('Escape');await expect(page.getByLabel('Your space',{exact:true})).toBeFocused();
   await page.getByRole('button',{name:'Date',exact:true}).click();await page.keyboard.press('Escape');await expect(page.getByRole('button',{name:'Date',exact:true})).toBeFocused();

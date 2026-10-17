@@ -1,4 +1,4 @@
-import {reservationHeaders,waitForReservationSecurity} from './reservation-security';
+import {ensureEntrance,reservationHeaders,waitForReservationSecurity} from './reservation-security';
 import { test,expect,type BrowserContext,type Page } from '@playwright/test';
 import { createClient,type SupabaseClient } from '@supabase/supabase-js';
 import { createServerClient } from '@supabase/ssr';
@@ -19,12 +19,13 @@ type User={id:string;email:string;password:string};
 let db:Client;let stripe:Stripe;let auth:SupabaseClient;const users:User[]=[];const bookingIDs:string[]=[];const closureIDs:string[]=[];const rateIDs:string[]=[];const evidence:Record<string,unknown>={};
 let resourceOriginal:{id:string;active:boolean}|undefined;
 async function signIn(context:BrowserContext,user:User) {
+ await ensureEntrance(context);
  const jar=new Map<string,string>();const client=createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!,process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,{cookies:{getAll:()=>[...jar].map(([name,value])=>({name,value})),setAll:items=>items.forEach(({name,value})=>jar.set(name,value))}});
  expect(Boolean((await client.auth.signInWithPassword({email:user.email,password:user.password})).data.session)).toBe(true);expect((await client.auth.getUser()).data.user?.id).toBe(user.id);
  await context.addCookies([...jar].filter(([,v])=>v).map(([name,value])=>({name,value,url:origin,httpOnly:true,secure:false,sameSite:'Lax' as const})));
 }
 async function pay(page:Page,card:string) {
- await page.getByRole('link',{name:'Continue to secure Stripe sandbox checkout'}).click();await page.locator('#email').fill(`m3-${randomUUID()}@palmsteeze.invalid`);
+ await page.getByRole('link',{name:'Continue to test payment'}).click();await page.locator('#email').fill(`m3-${randomUUID()}@palmsteeze.invalid`);
  await page.locator('#cardNumber').fill(card);await page.locator('#cardExpiry').fill('1234');await page.locator('#cardCvc').fill('123');
  if(await page.locator('#billingName').isVisible()) await page.locator('#billingName').fill('PalmSteeze sandbox administration fixture');
  if(await page.locator('#billingPostalCode').isVisible()) await page.locator('#billingPostalCode').fill('10001');
@@ -63,7 +64,7 @@ test.afterAll(async()=>{
  for(const user of users) expect((await auth.auth.admin.deleteUser(user.id)).error).toBeNull();await db.end();mkdirSync('docs/evidence',{recursive:true});writeFileSync(`docs/evidence/m3-browser-${test.info().project.name}.json`,JSON.stringify({checkedAt:new Date().toISOString(),...evidence,fixtureCleanup:'PASSED'},null,2)+'\n');
 });
 test('admin decisions real refunds pending failure recovery spaces closures audit and restrictions',async({page,context,browser},info)=>{
- await signIn(context,users[1]);const customer=await browser.newContext({baseURL:origin});const customerPage=await customer.newPage();await signIn(customer,users[0]);const anon=await browser.newContext({baseURL:origin});
+ await signIn(context,users[1]);const customer=await browser.newContext({baseURL:origin});const customerPage=await customer.newPage();await signIn(customer,users[0]);const anon=await browser.newContext({baseURL:origin});await ensureEntrance(anon);
  const action=async(data:Record<string,unknown>)=>context.request.post('/api/admin/actions',{headers,data});
  try {
   mkdirSync('docs/screenshots/m4-v2',{recursive:true});
@@ -85,7 +86,7 @@ test('admin decisions real refunds pending failure recovery spaces closures audi
   const selection={resource:resource.id,date,hour:10,duration:1};
   const firstInterval=intervalFromSelection(date,10,1);const qs=new URLSearchParams({resource:resource.id,start:firstInterval.starts_at,end:firstInterval.ends_at});const authoritative=(await(await customer.request.get(`/api/quote?${qs}`)).json()).quote;
   const expectedQuote=JSON.stringify(Object.fromEntries(['hourly_kobo','total_kobo','deposit_percent','deposit_kobo','balance_kobo'].map(k=>[k,authoritative[k]])));
-  for(const amountKobo of ['79999','200001','80000.1','8e4',80000]) expect((await customer.request.post('/api/checkout',{headers,data:{resourceId:resource.id,startsAt:firstInterval.starts_at,endsAt:firstInterval.ends_at,requestId:randomUUID(),expectedQuote,amountKobo}})).status()).toBe(400);
+  for(const amountKobo of ['79999','200001','80000.1','8e4',80000]) expect((await customer.request.post('/api/checkout',{headers:{...headers,...await reservationHeaders(customer,visitDestination(selection))},data:{resourceId:resource.id,startsAt:firstInterval.starts_at,endsAt:firstInterval.ends_at,requestId:randomUUID(),expectedQuote,amountKobo}})).status()).toBe(400);
   expect((await db.query('select count(*)::int as n from public.bookings where owner_id=$1',[users[0].id])).rows[0].n).toBe(0);evidence.applicationAmountValidationAndRollback='PASSED';
   const variants=[{card:'4242424242424242',kind:'success'},{card:'4000000000007726',kind:'pending'},{card:'4242424242424242',kind:'full'}];
   // The optional provider-failure gate retains its real failed-result and
@@ -101,7 +102,7 @@ test('admin decisions real refunds pending failure recovery spaces closures audi
    await customerPage.screenshot({path:`docs/screenshots/m3-payment-choice-${info.project.name}.png`,fullPage:true});
    if(variant.kind==='full') {await prepareCapture(customerPage);await customerPage.screenshot({path:`docs/screenshots/m4-v2/payment-review-full-${info.project.name}.png`,fullPage:true,animations:'disabled'});}
    const promise=customerPage.waitForResponse(r=>r.url().endsWith('/api/checkout')&&r.request().method()==='POST');await waitForReservationSecurity(customerPage);await customerPage.getByRole('button',{name:'Continue to test payment'}).click();const result=await promise;expect([201,202]).toContain(result.status());const detail=await result.json();if(result.status()===202) expect(detail.payment.state).toBe('creating');const id=detail.booking.id;bookingIDs.push(id);expect(detail.payment.amount_kobo).toBe(expectedAmount);expect(detail.booking.deposit_kobo).toBe(80000);expect(detail.booking.balance_kobo).toBe(120000);
-   await expect(customerPage).toHaveURL(new RegExp(`/booking/${id}`));await expect(customerPage.getByRole('link',{name:'Continue to secure Stripe sandbox checkout'})).toBeVisible({timeout:90000});await pay(customerPage,variant.card);
+   await expect(customerPage).toHaveURL(new RegExp(`/booking/${id}`));await expect(customerPage.getByRole('link',{name:'Continue to test payment'})).toBeVisible({timeout:90000});await pay(customerPage,variant.card);
    const verified=(await db.query('select amount_kobo,collected_kobo,refunded_kobo,payment_intent_id from public.payment_attempts where booking_id=$1',[id])).rows[0];expect(Number(verified.collected_kobo)).toBe(expectedAmount);await expect(customerPage.locator('.quote-summary')).toContainText(variant.kind==='pending'?'₦1,000.01':variant.kind==='full'?'₦2,000':'₦800');
    if(variant.kind==='full') {
     await customerPage.goto('/account');await prepareCapture(customerPage);await customerPage.screenshot({path:`docs/screenshots/m4-v2/customer-bookings-${info.project.name}.png`,fullPage:true,animations:'disabled',mask:[customerPage.getByTestId('customer-identity')],maskColor:'#D9DFD4'});await customerPage.goto(`/booking/${id}`);

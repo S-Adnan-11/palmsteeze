@@ -1,3 +1,4 @@
+import {requestAppOrigin} from '@/lib/deployment';
 import { authenticatedClient,authenticatedContext } from '@/lib/supabase/server';
 import { databaseError,jsonError,sameOrigin } from '@/lib/http';
 import { exactObject,uuidPattern } from '@/lib/domain';
@@ -25,7 +26,7 @@ export async function POST(request: Request) {
           || !Number.isFinite(Date.parse(body.startsAt)) || !Number.isFinite(Date.parse(body.endsAt))) throw new Error();
     } catch { return jsonError('Provide only a valid resource, interval and request ID.',400); }
     const verification=await reservationVerification(request);if(verification) return verification;
-    const capability=reservationCapability({resourceId:body.resourceId,startsAt:body.startsAt,endsAt:body.endsAt,requestId:body.requestId,userId:user.id,operation:'hold',amountKobo:null,expectedQuote:null},process.env);
+    const capability=reservationCapability({resourceId:body.resourceId,startsAt:body.startsAt,endsAt:body.endsAt,requestId:body.requestId,userId:user.id,operation:'hold',amountKobo:null,expectedQuote:null},process.env,Date.now(),requestAppOrigin(request,process.env));
     const {data,error} = await client.rpc('create_verified_hold',{p_resource:body.resourceId,p_start:body.startsAt,p_end:body.endsAt,p_request:body.requestId,p_capability:capability});
     return error ? databaseError(error.code) : Response.json({booking:data},{status:201});
   } catch { return jsonError('Hold could not be created. Please retry safely with the same request ID.',503); }

@@ -1,3 +1,4 @@
+export const metadata={alternates:{canonical:'/'}};
 import Image from 'next/image';
 import {getCatalog} from '@/lib/catalog';
 import {formatMoney} from '@/lib/domain';

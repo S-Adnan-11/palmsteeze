@@ -1,4 +1,35 @@
+import {applicationOrigins,developmentOrigins} from '../../supabase/functions/_shared/application-origins.ts';
+export {developmentOrigins} from '../../supabase/functions/_shared/application-origins.ts';
 type Environment = Record<string,string | undefined>;
+
+export function allowedAppOrigins(env:Environment) {
+  return applicationOrigins(configuredAppOrigin(env),env.VERCEL==='1'||Boolean(env.VERCEL_ENV));
+}
+
+export function validatedAppOrigin(value:string,env:Environment) {
+  if(!allowedAppOrigins(env).includes(value)) throw new Error('Application origin is not allowed.');
+  return value;
+}
+
+// Host is only a selector into the explicit allowlist. Forwarded headers never
+// grant an origin, even when Next normalizes the internal URL to HTTP/localhost.
+export function requestAppOrigin(request:{headers:Headers},env:Environment) {
+  const host=request.headers.get('host');
+  const origin=allowedAppOrigins(env).find(value=>new URL(value).host===host);
+  if(!origin) throw new Error('Unknown application host.');
+  const forwardedHost=request.headers.get('x-forwarded-host');
+  const forwardedProto=request.headers.get('x-forwarded-proto');
+  if((forwardedHost!==null&&forwardedHost!==host)
+    ||(forwardedProto!==null&&forwardedProto!==new URL(origin).protocol.slice(0,-1))) {
+    throw new Error('Conflicting proxy origin.');
+  }
+  return origin;
+}
+
+export function sameAppOrigin(request:Request,env:Environment) {
+  try {return request.headers.get('origin')===requestAppOrigin(request,env);}
+  catch {return false;}
+}
 
 export function sameConfiguredOrigin(request:Request,origin:string) {
   return request.headers.get('origin') === origin && request.headers.get('host') === new URL(origin).host;
@@ -6,7 +37,7 @@ export function sameConfiguredOrigin(request:Request,origin:string) {
 
 export function configuredAppOrigin(env:Environment) {
   const hosted = env.VERCEL === '1' || Boolean(env.VERCEL_ENV);
-  const value = env.APP_ORIGIN || (hosted ? '' : 'http://localhost:3000');
+  const value = env.APP_ORIGIN || (hosted ? '' : developmentOrigins[0]);
   let url:URL;
   try { url = new URL(value); } catch { throw new Error('Configure APP_ORIGIN as the canonical application origin.'); }
   const local = url.protocol === 'http:' && ['localhost','127.0.0.1'].includes(url.hostname);

@@ -7,6 +7,8 @@ import {verifyProject,connectDatabase,safeFailure} from '../../scripts/lib/datab
 import {reservationCapability,type ReservationIntent} from '../../src/lib/reservation-capability';
 import {createClearance,signSecurityPayload} from '../../src/lib/security-sessions';
 import {initialBookingDate,intervalFromSelection} from '../../src/lib/domain';
+import {developmentOrigins} from '../../src/lib/deployment';
+import {hostedOrigin} from '../../supabase/functions/_shared/application-origins';
 async function main(){
  await verifyProject();const db=await connectDatabase(),peers:Client[]=[],users:string[]=[];
  const admin=createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!,process.env.SUPABASE_SECRET_KEY!,{auth:{persistSession:false,autoRefreshToken:false}});
@@ -48,7 +50,10 @@ async function main(){
   await denied('checkout quote mismatch',()=>role(peers[0],users[0],checkoutSql,[...checkoutArgs,reservationCapability({...checkout,expectedQuote:{}},process.env)]));
   const invalid={...checkout,requestId:randomUUID(),expectedQuote:{...expected,total_kobo:1}};const invalidCap=reservationCapability(invalid,process.env);
   await denied('authoritative quote failure rolls back grant and reservation',()=>role(peers[0],users[0],checkoutSql,[resource,base.startsAt,base.endsAt,invalid.requestId,invalid.expectedQuote,100001,invalidCap]),'P0001');
-  const accepted=await Promise.all(peers.map(peer=>role(peer,users[0],checkoutSql,[...checkoutArgs,reservationCapability(checkout,process.env)])));assert.equal(accepted[0].rows[0].result.booking.id,accepted[1].rows[0].result.booking.id);assert.equal(accepted[0].rows[0].result.payment.id,accepted[1].rows[0].result.payment.id);assert.equal(accepted[0].rows[0].result.payment.amount_kobo,100001);
+  const accepted=await Promise.all(peers.map((peer,index)=>role(peer,users[0],checkoutSql,[...checkoutArgs,reservationCapability(checkout,process.env,Date.now(),developmentOrigins[index])])));assert.equal(accepted[0].rows[0].result.booking.id,accepted[1].rows[0].result.booking.id);assert.equal(accepted[0].rows[0].result.payment.id,accepted[1].rows[0].result.payment.id);assert.equal(accepted[0].rows[0].result.payment.amount_kobo,100001);
+  const initiatingOrigin=accepted[0].rows[0].result.payment.return_origin;
+  assert.ok(developmentOrigins.includes(initiatingOrigin));assert.equal(accepted[1].rows[0].result.payment.return_origin,initiatingOrigin);
+  results.push({name:'concurrent localhost/tunnel checkout retries preserve first signed origin',persistedAtomically:true,firstOriginImmutable:true,independentConnections:2});
   const jobs=(await db.query('select count(*)::int n from private.payment_jobs where attempt_id=$1',[accepted[0].rows[0].result.payment.id])).rows[0].n;assert.equal(jobs,1);
   // No worker/provider call: remove only this unleased fixture job before cleanup.
   const job=(await db.query('select lease_token from private.payment_jobs where attempt_id=$1',[accepted[0].rows[0].result.payment.id])).rows[0];assert.equal(job.lease_token,null);
@@ -56,6 +61,23 @@ async function main(){
   // Assigned administrators remain authenticated customers for their own grant.
   const own={...base,userId:users[2],requestId:randomUUID(),startsAt:new Date(Date.parse(base.startsAt)+7200000).toISOString(),endsAt:new Date(Date.parse(base.endsAt)+7200000).toISOString()};
   const made=await role(peers[0],users[2],holdSql,[resource,own.startsAt,own.endsAt,own.requestId,reservationCapability(own,process.env)]);assert.equal(made.rows[0].booking.owner_id,users[2]);
+  const tunnelHold={...base,userId:users[1],requestId:randomUUID(),startsAt:new Date(Date.parse(base.startsAt)+3600000).toISOString(),endsAt:new Date(Date.parse(base.endsAt)+3600000).toISOString()};
+  const tunnelMade=await role(peers[1],users[1],holdSql,[resource,tunnelHold.startsAt,tunnelHold.endsAt,tunnelHold.requestId,reservationCapability(tunnelHold,process.env,Date.now(),developmentOrigins[1])]);
+  assert.equal(tunnelMade.rows[0].booking.owner_id,users[1]);
+  results.push({name:'tunnel reservation capability retains original JWT ownership',accepted:true});
+  await role(peers[1],users[1],'select public.release_hold($1)',[tunnelMade.rows[0].booking.id]);
+  const hostedEnv={...process.env,APP_ORIGIN:hostedOrigin,VERCEL:'1'};
+  const hostedHold={...base,userId:users[1],requestId:randomUUID(),startsAt:new Date(Date.parse(base.startsAt)+10800000).toISOString(),endsAt:new Date(Date.parse(base.endsAt)+10800000).toISOString()};
+  const hostedMade=await role(peers[1],users[1],holdSql,[resource,hostedHold.startsAt,hostedHold.endsAt,hostedHold.requestId,reservationCapability(hostedHold,hostedEnv)]);
+  assert.equal(hostedMade.rows[0].booking.owner_id,users[1]);
+  assert.throws(()=>reservationCapability(hostedHold,hostedEnv,Date.now(),developmentOrigins[0]));
+  assert.throws(()=>reservationCapability(hostedHold,hostedEnv,Date.now(),developmentOrigins[1]));
+  const hostedRetry=await role(peers[0],users[0],checkoutSql,[...checkoutArgs,reservationCapability(checkout,hostedEnv)]);
+  assert.equal(hostedRetry.rows[0].result.payment.id,accepted[0].rows[0].result.payment.id);
+  assert.equal(hostedRetry.rows[0].result.payment.return_origin,initiatingOrigin);
+  results.push({name:'hosted capability accepted without development issuer privileges; retry preserves existing origin',accepted:true});
+  const forgedOrigin=JSON.parse(Buffer.from(grant.split('.')[0],'base64url').toString());forgedOrigin.origin='https://evil.example';forgedOrigin.nonce=randomUUID();
+  await denied('even a signed unconfigured origin cannot reserve',()=>role(peers[0],users[0],holdSql,[...args,signSecurityPayload('reservation',forgedOrigin,process.env)]));
   // Signed malformed expiry cannot pass even with trusted test issuer.
   const payload=JSON.parse(Buffer.from(grant.split('.')[0],'base64url').toString());payload.exp=payload.iat+61;payload.nonce=randomUUID();await denied('signed lifetime mismatch',()=>role(peers[0],users[0],holdSql,[...args,signSecurityPayload('reservation',payload,process.env)]));
   writeFileSync(process.env.PALMSTEEZE_SECURITY_EVIDENCE||'docs/evidence/m4-entrance/database-security.json',JSON.stringify({kind:'actual-role-dedicated-PostgreSQL; trusted test-issued capabilities, no Siteverify substitution claim',checks:results.length,results},null,2));console.log(`PASSED: ${results.length} reservation boundary checks; actual roles and independent concurrent connections.`);

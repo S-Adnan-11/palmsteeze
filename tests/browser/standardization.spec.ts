@@ -1,3 +1,4 @@
+import {setOptionalMemory} from './reservation-security';
 import {test,expect,type Page,type BrowserContext} from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import {createClient} from '@supabase/supabase-js';
@@ -114,7 +115,7 @@ test('review keeps exact amounts, independent reserve check, authentication and 
   await page.getByLabel('Payment amount in naira').fill('799.99');await expect(page.getByRole('button',{name:'Continue to test payment'})).toBeDisabled();await capture(page,'payment-invalid',info.project.name);
   await page.getByLabel('Payment amount in naira').fill('1000.01');await expect(page.getByRole('button',{name:'Continue to test payment'})).toBeEnabled();
   await expect(page.locator('.pay-now-summary')).toContainText('₦1,000.01');await expect(page.locator('.pay-now-summary')).toContainText('₦999.99');
-  await page.getByRole('button',{name:'Cookie settings',exact:true}).click();await expect(page.getByRole('checkbox',{name:/Remember booking/})).not.toBeChecked();await page.keyboard.press('Escape');await expect(page.getByRole('button',{name:'Cookie settings',exact:true})).toBeFocused();
+  const cookiePage=await page.context().newPage();await cookiePage.goto('/cookies');await expect(cookiePage.getByRole('group',{name:'Cookie preferences'}).getByRole('checkbox')).not.toBeChecked();await cookiePage.close();await page.bringToFront();
   await page.route('**/api/checkout',route=>route.fulfill({status:503,json:{error:'Verification unavailable. Retry the check.'}}));
   await page.getByRole('button',{name:'Continue to test payment'}).click();await expect(page.locator('.booking-status')).toHaveText('Verification unavailable. Retry the check.');await expect(page.getByLabel('Payment amount in naira')).toHaveValue('1000.01');await capture(page,'checkout-error',info.project.name);
   await page.unroute('**/api/checkout');
@@ -133,7 +134,7 @@ test('compact preferences preserve rejection, acceptance, withdrawal and dialog 
   await page.keyboard.press('Shift+Tab');expect(await page.getByRole('dialog').evaluate(n=>n.contains(document.activeElement))).toBe(true);
   await page.keyboard.press('Escape');await expect(page.getByRole('button',{name:'Manage preferences'})).toBeFocused();
   await page.getByRole('button',{name:'Accept optional storage'}).click();await expect.poll(()=>page.evaluate(()=>sessionStorage.getItem('palmsteeze.visit.v1'))).not.toBeNull();
-  await page.getByRole('button',{name:'Cookie settings',exact:true}).click();await page.getByRole('button',{name:'Necessary only',exact:true}).click();await expect.poll(()=>page.evaluate(()=>Object.keys(sessionStorage))).toEqual([]);await expect(page.getByRole('button',{name:'Cookie settings',exact:true})).toBeFocused();
+  await setOptionalMemory(page,false);await expect.poll(()=>page.evaluate(()=>Object.keys(sessionStorage))).toEqual([]);
   await page.goto('/preview/admin');await page.getByRole('button',{name:'Bookings',exact:true}).click();await page.getByRole('combobox',{name:'Booking status filter'}).focus();await page.keyboard.press('ArrowDown');await capture(page,'admin-dropdown',info.project.name);await page.keyboard.press('Escape');await expect(page.getByRole('combobox',{name:'Booking status filter'})).toBeFocused();await capture(page,'admin',info.project.name,true);
 });
 

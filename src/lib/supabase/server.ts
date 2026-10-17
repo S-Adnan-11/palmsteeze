@@ -1,3 +1,4 @@
+import {currentAppOrigin} from '@/lib/request-origin';
 import 'server-only';
 import { createServerClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
@@ -23,11 +24,11 @@ export function publicClient() {
 }
 export async function sessionClient(writable = false) {
   const config = publicConfiguration();if (!config) return null;
-  const store = await cookies();
-  return createServerClient(config.url,config.key,{global:{fetch:uncachedFetch},cookieOptions:authCookieOptions(),cookies:{
+  const store = await cookies();const origin=await currentAppOrigin();
+  return createServerClient(config.url,config.key,{global:{fetch:uncachedFetch},cookieOptions:authCookieOptions(origin),cookies:{
     getAll:() => store.getAll(),
     ...(writable ? {setAll:(items: {name:string;value:string;options:import('@supabase/ssr').CookieOptions}[]) => {
-      items.forEach(({name,value,options}) => store.set(name,value,{...options,...authCookieOptions()}));
+      items.forEach(({name,value,options}) => store.set(name,value,{...options,...authCookieOptions(origin)}));
     }} : {}),
   }});
 }

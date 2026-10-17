@@ -26,6 +26,7 @@ export function WorkspaceExplorer({catalog}:{catalog:Catalog}) {
   const [reload,setReload]=useState(0);
   const [times,setTimes]=useState<{key:string;slots:HourSlot[];pending:boolean;error:string}>({key:'',slots:[],pending:true,error:''});
   const generation=useRef(0);const checking=useRef<AbortController|null>(null);
+  const linkOwnsUrl=useRef(false);
   const {resource:selected,date,hour,duration}=selection;
   const resource=resources.find(r=>r.id===selected);
   const kindOrder={open_desk:0,quiet_desk:1,room:2};
@@ -60,7 +61,10 @@ export function WorkspaceExplorer({catalog}:{catalog:Catalog}) {
   useEffect(()=>{
     if(!ready||!resource) return;
     if(memory.allowed&&tabMemoryAllowed()) try {sessionStorage.setItem(savedVisitKey,visitDestination(selection));} catch { /* The URL still works when storage is blocked. */ }
-    window.history.replaceState(window.history.state,'',editVisitDestination(selection).replace('#plan',window.location.hash));
+    if(linkOwnsUrl.current){linkOwnsUrl.current=false;return;}
+    const next=editVisitDestination(selection).replace('#plan',window.location.hash);
+    // Let App Router retain its own history fields and synchronize this URL.
+    if(window.location.pathname+window.location.search+window.location.hash!==next) window.history.replaceState(null,'',next);
   },[ready,selection,resource,memory.allowed]);
   useEffect(()=>{
     if(!ready||!selected) return;
@@ -136,7 +140,7 @@ export function WorkspaceExplorer({catalog}:{catalog:Catalog}) {
     </section>
     <section id="spaces" className="spaces-section" aria-labelledby="spaces-title"><div className="section-heading"><div><p className="eyebrow">Different days. Different spaces.</p><h2 id="spaces-title">Make room for<br/><em>your kind of day.</em></h2></div><p>Find your focus. Share a little energy.<br/>Bring a good idea to the table.</p></div><div hidden={source==='live'} className={'connection-note '+(source==='unavailable'?'unavailable':'')} role="status"><span className="status-dot" aria-hidden="true"/>{source==='preview'?'Preview inventory · Sample prices. Live availability is not connected.':source==='live'?'Choose your space. Check your date and hours above.':'Workspace service unavailable · Please try again later.'}</div><div className="filters" aria-label="Filter spaces">{(['all','open_desk','quiet_desk','room'] as const).map(kind=><button key={kind} type="button" aria-pressed={filter===kind} onClick={()=>setFilter(kind)}>{kind==='all'?'All spaces':labels[kind]}</button>)}</div><div className="space-grid">{groups.map(r=>{
       const picture=spaceImage(r.kind,r.seats);const isSelected=resource?.kind===r.kind&&(r.kind!=='room'||resource.id===r.id);
-      return <article className={'space-card '+(isSelected?'space-selected':'')} key={r.id}><div className="space-image"><Image src={picture.src} alt={picture.alt} width={768} height={512} sizes="(max-width: 620px) 100vw, (max-width: 1000px) 50vw, 33vw"/><span>{r.kind==='room'?r.seats+' seats · whole room':resources.filter(s=>s.kind===r.kind).length+' individual desks'}</span></div><div className="space-card-content"><p className="card-kind">{r.kind==='room'?'A meeting of minds':r.kind==='quiet_desk'?'A little more focus':'A shared rhythm'}</p><h3>{r.kind==='room'?r.name:labels[r.kind]}</h3><p>{r.description}</p><div className="card-bottom"><span><strong>{formatMoney(r.hourly_kobo)}</strong> / hour</span><a href="#plan" onClick={()=>change({resource:r.id})} aria-label={'Plan a visit for '+(r.kind==='room'?r.name:labels[r.kind])}>{isSelected?'Selected':'Choose'} <span aria-hidden="true">↗</span></a></div></div></article>;
+      return <article className={'space-card '+(isSelected?'space-selected':'')} key={r.id}><div className="space-image"><Image src={picture.src} alt={picture.alt} width={768} height={512} sizes="(max-width: 620px) 100vw, (max-width: 1000px) 50vw, 33vw"/><span>{r.kind==='room'?r.seats+' seats · whole room':resources.filter(s=>s.kind===r.kind).length+' individual desks'}</span></div><div className="space-card-content"><p className="card-kind">{r.kind==='room'?'A meeting of minds':r.kind==='quiet_desk'?'A little more focus':'A shared rhythm'}</p><h3>{r.kind==='room'?r.name:labels[r.kind]}</h3><p>{r.description}</p><div className="card-bottom"><span><strong>{formatMoney(r.hourly_kobo)}</strong> / hour</span><Link href={editVisitDestination({...selection,resource:r.id})} prefetch={false} onNavigate={()=>{linkOwnsUrl.current=true;change({resource:r.id});}} aria-label={'Plan a visit for '+(r.kind==='room'?r.name:labels[r.kind])}>{isSelected?'Selected':'Choose'} <span aria-hidden="true">↗</span></Link></div></div></article>;
     })}</div>{!resources.length&&<div className="empty-state"><h3>We can’t show the spaces right now.</h3><p>Please refresh in a moment.</p></div>}</section>
   </>;
 }

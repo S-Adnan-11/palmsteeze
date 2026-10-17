@@ -1,3 +1,4 @@
+import {writeEvidence} from '../../scripts/lib/evidence';
 import {fixtureCheckout,fixtureReservationQuery} from './reservation-fixtures';
 import assert from 'node:assert/strict';
 import { randomBytes,randomUUID } from 'node:crypto';
@@ -205,7 +206,7 @@ async function main() {
   await db.query('delete from private.app_roles where user_id=any($1::uuid[])',[userIDs]);await db.query('commit');
   for(const user of identities) assert.equal((await admin.auth.admin.deleteUser(user.id)).error,null);
   for(const peer of peers) await peer.end();await db.end();
-  mkdirSync('docs/evidence',{recursive:true});writeFileSync('docs/evidence/m2-payment-database.json',JSON.stringify(evidence,null,2)+'\n');
+  mkdirSync('docs/evidence',{recursive:true});writeEvidence('m2-payment-database.json',evidence);
  }
 }
 main().catch(safeFailure);

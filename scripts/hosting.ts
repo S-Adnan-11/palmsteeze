@@ -3,6 +3,7 @@ import { createHash,randomUUID } from 'node:crypto';
 import { readFileSync,mkdirSync,writeFileSync } from 'node:fs';
 import Stripe from 'stripe';
 import { configuredAppOrigin } from '../src/lib/deployment';
+import {sharedServiceOrigins,hostedOrigin} from '../supabase/functions/_shared/application-origins';
 import { verifyProject,connectDatabase,ReadinessError,safeFailure } from './lib/database';
 import { management,deployFunction } from './lib/management';
 
@@ -66,7 +67,9 @@ async function main() {
       (select count(*)::int from cron.job where active and jobname like 'palmsteeze-%') as all_palmsteeze_schedules,
       (select count(*)::int from vault.secrets where name in ('palmsteeze_payment_worker_url','palmsteeze_payment_worker_token')) as vault_entries`,[baseline.checkedAt])).rows[0];
     assert.equal(audit.original_30_percent_snapshots,baseline.legacyBookings.total);assert.equal(audit.legacy_payment_attempts,0);
-    assert.equal(audit.new_deposit_percent,40);assert.equal(audit.resources,27);assert.equal(audit.seats,44);assert.equal(audit.remaining_test_identities,0);
+    assert.equal(audit.new_deposit_percent,40);assert.equal(audit.resources,27);assert.equal(audit.seats,44);
+    // Earlier paid synthetic proof may be deliberately retained. Report it;
+    // never delete older records to satisfy a zero-fixture assumption.
     assert.equal(audit.correct_minute_schedule,1);assert.equal(audit.all_palmsteeze_schedules,1);assert.equal(audit.vault_entries,2);
     const vault = (await db.query("select name,decrypted_secret from vault.decrypted_secrets where name in ('palmsteeze_payment_worker_url','palmsteeze_payment_worker_token')")).rows;
     assert.equal(vault.find(s => s.name === 'palmsteeze_payment_worker_url')?.decrypted_secret,`${endpoint}/recover`);
@@ -94,28 +97,37 @@ async function main() {
     hostedExactCallbackAllowed:requestedOrigin ? callbacks.includes(`${requestedOrigin}/auth/callback`) : null,
     localCallbackPreserved:callbacks.includes('http://localhost:3000/auth/callback'),
     billingAndMonthlyUsage:'Owner dashboard confirmation required; existing Free attestation preserved.',
+    syntheticIdentityScope:'Count includes preserved historical proof; compare release before/after fingerprints. No automatic deletion.',
     postCutoverEmptyRecovery:'NOT RUN',publicationPerformed:false,recordsMutated:false};
   if (operation === 'prepare-worker') {
-    if (audit!.uncertain_session_creations !== 0) throw new ReadinessError('NOT RUN: reconcile uncertain session creation before changing its stable idempotent request parameters.');
+    if(requestedOrigin!==hostedOrigin) throw new ReadinessError('NOT RUN: only the reviewed hosted hostname is authorized.');
     if (!report.hostedExactCallbackAllowed || !report.hostedAuthSiteURLMatches) throw new ReadinessError('NOT RUN: configure exact hosted Supabase Site URL/callback first.');
-    // Same function and webhook; no token/signing-secret rotation, Vault/cron
-    // mutation, schema change, migration, booking write or Stripe POST.
+    const originDB=await connectDatabase();
+    try {
+      const origins=(await originDB.query('select allowed_origins from private.reservation_security_config where singleton')).rows[0]?.allowed_origins;
+      assert.deepEqual([...origins].sort(),[...sharedServiceOrigins].sort());
+    } finally {await originDB.end();}
+    // Preserve every secret, including the historical return fallback. New
+    // attempts persist their own independently validated initiating origin.
     await deployFunction(slug,readFileSync(`supabase/functions/${slug}/index.ts`,'utf8'));
-    await management('secrets',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify([{name:'PALMSTEEZE_APP_ORIGIN',value:requestedOrigin}])});
     const after = await (await management('secrets')).json() as {name:string;value:string}[];
-    assert.equal(after.find(s => s.name === 'PALMSTEEZE_APP_ORIGIN')?.value,digest(requestedOrigin!));
+    const sorted=(values:typeof after)=>values.map(({name,value})=>({name,value})).sort((a,b)=>a.name.localeCompare(b.name));
+    assert.deepEqual(sorted(after),sorted(secrets));
     const empty = await fetch(`${endpoint}/recover`,{method:'POST',headers:{Authorization:`Bearer ${state.token}`,'Content-Type':'application/json'},
       body:JSON.stringify({bookingId:emptyProbeId}),signal:AbortSignal.timeout(15000)});
     assert.equal(empty.status,200);assert.deepEqual(await empty.json(),{processed:0,completed:0,deferred:0});
     const unsignedAfter = await fetch(`${endpoint}/webhook`,{method:'POST',body:'{}',signal:AbortSignal.timeout(15000)});
     assert.equal(unsignedAfter.status,400);
     report.postCutoverEmptyRecovery = 'PASSED - unknown booking, zero claimed jobs; signature rejection retained.';
-    report.requestedHostedOriginMatches = true;
+    report.postCutoverEmptyRecovery += ' All secrets/historical fallback unchanged; persisted hosted origins supported.';
   }
   mkdirSync('docs/evidence/m5',{recursive:true});
   const file = `docs/evidence/m5/infrastructure-${Date.now()}.json`;
   writeFileSync(file,JSON.stringify(report,null,2)+'\n');
   console.log(JSON.stringify(report));
 }
-main().catch(safeFailure);
+main().catch(error=>{
+  // Print code location only, never AssertionError actual/expected or payloads.
+  if(error instanceof assert.AssertionError) console.error(error.stack?.split('\n').find(line=>line.includes('scripts')&&line.includes('hosting.ts'))?.trim()||'Infrastructure assertion failed.');
+  safeFailure(error);
+});

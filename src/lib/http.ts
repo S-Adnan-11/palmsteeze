@@ -1,12 +1,8 @@
 import 'server-only';
-import { appOrigin } from '@/lib/auth/config';
-import { sameConfiguredOrigin } from '@/lib/deployment';
+import { sameAppOrigin } from '@/lib/deployment';
 export function jsonError(message: string, status: number) { return Response.json({error:message},{status}); }
 export function sameOrigin(request: Request) {
-  // Hosting can normalize the internal URL's scheme/host. Authorize against
-  // the configured browser origin, never against forwarded caller claims.
-  try { return sameConfiguredOrigin(request,appOrigin()); }
-  catch { return false; }
+  return sameAppOrigin(request,process.env);
 }
 export function databaseError(code?: string) {
   if (code === '23P01') return jsonError('That space was just taken or blocked. Choose another space or time.',409);

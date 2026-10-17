@@ -141,17 +141,15 @@ test('coordinated motion, stable shared popups and constrained layouts',async({p
   if(info.project.name==='desktop') {
     const beforeHydration=await context.browser()!.newContext({javaScriptEnabled:false,viewport:{width:1440,height:1000},reducedMotion:'no-preference'});
     await beforeHydration.addCookies(await context.cookies());const initial=await beforeHydration.newPage();await initial.goto(origin+'/');
-    expect(await initial.locator('[data-story-scene]').first().evaluate(node=>getComputedStyle(node).position)).toBe('absolute');expect(await initial.locator('[data-story-scene]').nth(1).evaluate(node=>getComputedStyle(node).opacity)).toBe('0');await beforeHydration.close();
-    await expect(page.locator('.workspace-experience')).toHaveAttribute('data-motion','scroll');
-    const section=page.locator('.workspace-experience');
-    for(const [index,progress] of [0,.5,.97].entries()) {
-      await section.evaluate((node,p)=>{const panel=node.querySelector<HTMLElement>('[data-story-panel]')!;window.scrollTo({top:scrollY+node.getBoundingClientRect().top-parseFloat(getComputedStyle(panel).top)+(node.getBoundingClientRect().height-panel.offsetHeight)*p,behavior:'instant'});},progress);
-      await expect(section.locator('[aria-current="step"]')).toHaveAttribute('data-story-stage',String(index));await expect(section.locator('[data-story-stage]').nth(index)).toHaveCSS('border-left-color','rgb(23, 61, 50)');await capture(page,'motion-scene-'+index,info);
-    }
-    await page.emulateMedia({reducedMotion:'reduce'});await expect(section).toHaveAttribute('data-motion','static');await capture(page,'motion-reduced',info);
-    await page.emulateMedia({reducedMotion:'no-preference'});await expect(section).toHaveAttribute('data-motion','scroll');
-    await page.setViewportSize({width:760,height:1000});await expect(section).toHaveAttribute('data-motion','static');await page.setViewportSize({width:761,height:1000});await expect(section).toHaveAttribute('data-motion','scroll');await page.setViewportSize({width:960,height:1000});await expect(section).toHaveAttribute('data-motion','scroll');await page.setViewportSize({width:1440,height:1000});
-  }else {await expect(page.locator('.workspace-experience')).toHaveAttribute('data-motion','static');await page.locator('.workspace-experience').scrollIntoViewIfNeeded();await capture(page,'motion-mobile-static',info);}
+    await expect(initial.getByRole('heading',{name:'A little room to breathe.'})).toBeVisible();
+    expect(await initial.locator('[data-story-visual]').evaluate(node=>getComputedStyle(node).backgroundImage)).toContain('workspace-breathe-poster.svg');await beforeHydration.close();
+  }
+  const section=page.locator('.workspace-experience');
+  await expect(section).toHaveAttribute('data-motion','time');await expect(section).toHaveAttribute('data-scene-status','ready');
+  await page.emulateMedia({reducedMotion:'reduce'});await expect(section).toHaveAttribute('data-motion','reduced');
+  await expect(section.locator('[data-story-visual]')).toHaveAttribute('data-render-state','paused');
+  await capture(page,'workspace-reduced-still',info);
+  await page.emulateMedia({reducedMotion:'no-preference'});
   await page.locator('#plan').scrollIntoViewIfNeeded();
   const geometry=[];
   for(const label of ['Your space','Date','Start time · WAT','Duration']) {

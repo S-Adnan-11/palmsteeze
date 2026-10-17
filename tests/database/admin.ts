@@ -1,3 +1,4 @@
+import {writeEvidence} from '../../scripts/lib/evidence';
 import {fixtureCheckout} from './reservation-fixtures';
 import assert from 'node:assert/strict';
 import { randomBytes,randomUUID } from 'node:crypto';
@@ -90,7 +91,7 @@ async function main() {
   await db.query('delete from public.payment_attempts where owner_id=any($1::uuid[])',[ids]);await db.query('delete from public.cancellation_requests where owner_id=any($1::uuid[])',[ids]);
   await db.query('delete from public.allocations where booking_id in(select id from public.bookings where owner_id=any($1::uuid[]))',[ids]);await db.query('delete from public.bookings where owner_id=any($1::uuid[])',[ids]);await db.query('delete from private.app_roles where user_id=any($1::uuid[])',[ids]);await db.query('commit');
   for(const u of users) assert.equal((await auth.auth.admin.deleteUser(u.id)).error,null);for(const peer of peers) await peer.end();await db.end();
-  mkdirSync('docs/evidence',{recursive:true});writeFileSync('docs/evidence/m3-database.json',JSON.stringify(evidence,null,2)+'\n');
+  mkdirSync('docs/evidence',{recursive:true});writeEvidence('m3-database.json',evidence);
  }
 }
 main().catch(safeFailure);

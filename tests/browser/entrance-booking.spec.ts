@@ -7,7 +7,7 @@ import type {Client} from 'pg';
 import {verifyProject,connectDatabase} from '../../scripts/lib/database';
 import {initialBookingDate} from '../../src/lib/domain';
 import {visitDestination} from '../../src/lib/auth/destinations';
-import {waitForReservationSecurity} from './reservation-security';
+import {setOptionalMemory,waitForReservationSecurity} from './reservation-security';
 import AxeBuilder from '@axe-core/playwright';
 test.use({baseURL:'http://localhost:3000',trace:'off',screenshot:'off',video:{mode:'on',size:{width:1440,height:1000}}});
 test.describe.configure({mode:'serial',timeout:120000});
@@ -24,8 +24,8 @@ test('official test-widget recording: entrance, necessary-only choice, booking a
  // legitimate password fixture. This recording is not a Google OAuth proof.
  await page.goto(visitDestination(selection));await expect.poll(()=>page.locator('.review-space img').evaluate(image=>(image as HTMLImageElement).complete&&(image as HTMLImageElement).naturalWidth>0),{timeout:15000}).toBe(true);await waitForReservationSecurity(page);
  await page.getByRole('radio',{name:/Custom amount/}).check();await page.getByLabel('Payment amount in naira').fill('1000.01');
- await page.getByRole('button',{name:'Cookie settings',exact:true}).click();await page.getByRole('checkbox',{name:/Remember booking/}).check();await page.getByRole('button',{name:'Save preferences'}).click();await expect.poll(()=>page.evaluate(()=>Object.keys(sessionStorage).some(k=>k.startsWith('palmsteeze.payment.v1:')))).toBe(true);
- await page.getByRole('button',{name:'Cookie settings',exact:true}).click();await page.getByRole('button',{name:'Necessary only',exact:true}).click();await expect(page.getByLabel('Payment amount in naira')).toHaveValue('1000.01');expect(await page.evaluate(()=>Object.keys(sessionStorage))).toEqual([]);
+ await setOptionalMemory(page,true);await expect.poll(()=>page.evaluate(()=>Object.keys(sessionStorage).some(k=>k.startsWith('palmsteeze.payment.v1:')))).toBe(true);
+ await setOptionalMemory(page,false);await expect(page.getByLabel('Payment amount in naira')).toHaveValue('1000.01');expect(await page.evaluate(()=>Object.keys(sessionStorage))).toEqual([]);
  // Expired entrance: preserve live input, verify in another tab, then retry.
  await context.clearCookies({name:'ps-clearance'});await page.evaluate(()=>window.dispatchEvent(new Event('focus')));await expect(page.locator('.verification-renewal')).toBeVisible();
  const renewal=await context.newPage();await renewal.goto('/verify?next=/');await expect(renewal).toHaveURL(origin+'/',{timeout:30000});await renewal.close();await page.bringToFront();await page.evaluate(()=>window.dispatchEvent(new Event('focus')));await expect(page.locator('.verification-renewal')).toHaveCount(0);await expect(page.getByLabel('Payment amount in naira')).toHaveValue('1000.01');

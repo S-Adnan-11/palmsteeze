@@ -1,3 +1,4 @@
+import {writeEvidence} from './evidence';
 import Stripe from 'stripe';
 import { mkdirSync,readFileSync,writeFileSync } from 'node:fs';
 import { loadLocalEnvironment,ReadinessError } from './database';
@@ -31,19 +32,19 @@ export async function verifiedStripeSandbox() {
     const safe=(value:unknown)=>typeof value==='string' && /^[A-Za-z0-9_.-]{1,80}$/.test(value) ? value : 'unavailable';
     const status=Number.isInteger(provider.statusCode) ? provider.statusCode : 'unavailable';
     mkdirSync('docs/evidence',{recursive:true});
-    writeFileSync('docs/evidence/m2b-stripe-access.json',JSON.stringify({checkedAt:new Date().toISOString(),
+    writeEvidence('m2b-stripe-access.json',{checkedAt:new Date().toISOString(),
       operation:'GET /v1/account',selectedSandboxVerification:'FAILED',type:safe(provider.type),
       code:safe(provider.code),status,parameter:safe(provider.param),paymentCreated:false,
       requiredPermission:'connected_account_read',
       requiredAction:'Enable Read for Connect connected-account access on the existing sandbox restricted key; use the failed GET /v1/account request log to locate the named permission. Update STRIPE_SECRET_KEY privately only if the key is replaced.',
-    },null,2)+'\n');
+    });
     throw new ReadinessError(`NOT RUN: Stripe account retrieval failed (${safe(provider.type)}, ${safe(provider.code)}, HTTP ${status}, parameter ${safe(provider.param)}). The observed missing permission is connected_account_read (Connect account Read). Raw provider text and identity withheld.`);
   }
   if (account.id!==process.env.STRIPE_ACCOUNT_ID) throw new ReadinessError('NOT RUN: Stripe selected-account mismatch; no payment created.');
   mkdirSync('docs/evidence',{recursive:true});
-  writeFileSync('docs/evidence/m2b-stripe-access.json',JSON.stringify({checkedAt:new Date().toISOString(),
+  writeEvidence('m2b-stripe-access.json',{checkedAt:new Date().toISOString(),
     operation:'GET /v1/account',selectedSandboxVerification:'PASSED',paymentCreated:false,
-  },null,2)+'\n');
+  });
   console.log('PASSED: dedicated owner-selected Stripe account matches the sandbox/test key configuration. No account identity or credentials logged.');
   return stripe;
 }

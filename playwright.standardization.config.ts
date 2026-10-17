@@ -16,7 +16,7 @@ export default defineConfig({
   use:{...base.use,trace:'off',screenshot:'off',launchOptions:{args:['--host-resolver-rules=MAP localhost 127.0.0.1']}},
   webServer:{
     ...(base.webServer as {command:string;url:string}),
-    url:'http://127.0.0.1:3000/api/verification',
+    url:'http://localhost:3000/api/verification',
     env:{NEXT_TELEMETRY_DISABLED:'1',APP_ORIGIN:'http://localhost:3000',PALMSTEEZE_PROVIDER_FAULTS:'local-proof',PALMSTEEZE_REVIEW_ROOT:'docs/evidence/m4-standardization/entrance',PALMSTEEZE_REVIEW_SCREENS:'docs/screenshots/m4-standardization/regression',NODE_OPTIONS:`--require="${resolve('tests/browser/turnstile-provider-preload.cjs').replaceAll('\\','/')}" --require="${resolve('tests/browser/presentation-read-preload.cjs').replaceAll('\\','/')}"`},
   },
 });

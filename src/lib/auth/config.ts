@@ -1,15 +1,15 @@
 import 'server-only';
-import { configuredAppOrigin,sameConfiguredOrigin } from '@/lib/deployment';
+import { configuredAppOrigin,sameAppOrigin,validatedAppOrigin } from '@/lib/deployment';
 
 export function appOrigin() {
   return configuredAppOrigin(process.env);
 }
-export function authCookieOptions() {
-  return {path:'/',httpOnly:true,sameSite:'lax' as const,secure:appOrigin().startsWith('https:')};
+export function authCookieOptions(origin=appOrigin()) {
+  return {path:'/',httpOnly:true,sameSite:'lax' as const,secure:validatedAppOrigin(origin,process.env).startsWith('https:')};
 }
 export const oauthDestinationCookie = 'ps-oauth-next';
 export function authSameOrigin(request:Request) {
-  return sameConfiguredOrigin(request,appOrigin());
+  return sameAppOrigin(request,process.env);
 }
 export function privateHeaders(headers = new Headers()) {
   headers.set('Cache-Control','private, no-store, no-cache, max-age=0, must-revalidate');

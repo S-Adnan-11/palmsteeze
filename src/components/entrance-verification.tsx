@@ -46,9 +46,9 @@ export function EntranceVerification({destination}:{destination:string}) {
     } finally {busy.current=false;}
   },[target]);
   return <section className="entrance-card" aria-busy={state==='checking'}>
-    <h1>Welcome to <em>PalmSteeze</em></h1>
+    {/* <h1>Welcome to <em>PalmSteeze</em></h1> */}
     <SecurityChallenge action="entrance" onToken={verify} reset={reset} disabled={state==='checking'||state==='navigating'}/>
-    <p className="entrance-result" role="status">{state==='checking'?'Confirming verification…':state==='navigating'?(navigationFailed?'Your page did not open. Continue below.':'Opening your page…'):error}</p>
+    <p className="entrance-result" role="status">{state==='checking'?'Confirming verification…':state==='navigating'?(navigationFailed?'Your page did not open. Continue below.':'…'):error}</p>
     {state==='error'&&<button className="button button-secondary" type="button" onClick={()=>{setError('');setState('ready');setReset(value=>value+1);}}>Retry verification</button>}
     {state==='navigating'&&navigationFailed&&<a className="button" href={target}>Continue to PalmSteeze</a>}
     <nav className="entrance-policies" aria-label="Policies without verification"><Link href="/privacy">Privacy</Link><Link href="/cookies">Cookies</Link><Link href="/terms">Demo Terms</Link></nav>

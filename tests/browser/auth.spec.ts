@@ -87,7 +87,7 @@ test.afterAll(async () => {
 
 test('visitors browse, selected visit survives login gate, callbacks and redirect attacks recover safely',async ({page,context}) => {
   const request=context.request;
-  await page.goto('/');await expect(page.getByText('Choose your space. Check your date and hours above.')).toBeVisible();
+  await page.goto('/');await expect(page.locator('.space-card')).toHaveCount(5);
   await selectChoice(page,'Your space',resource);
   await chooseDate(page,selection.date);
   await selectChoice(page,'Start time · WAT','10');await selectChoice(page,'Duration','2');
@@ -107,29 +107,30 @@ test('visitors browse, selected visit survives login gate, callbacks and redirec
     expect(new URL(response.headers().location).pathname).toBe('/login');assertPrivate(response);
   }
   await page.goto('/auth/callback?error=access_denied&error_description=untrusted');
-  await expect(page.locator('.auth-notice')).toContainText('Sign-in was cancelled.');
+  await expect(page.locator('.auth-notice')).toContainText(/Sign-in (was )?cancelled/);
   await expect(page.getByText('untrusted',{exact:true})).toHaveCount(0);
-  await page.goto('/login?next=//evil.example');await expect(page.locator('.auth-notice')).toContainText('not allowed');
+  await page.goto('/login?next=//evil.example');await expect(page.locator('.auth-notice')).toContainText('return link is invalid');
 });
 
 test('fresh review payment bounds and editable selection survive session loss without a new booking',async({page,context},info)=>{
   await signIn(context,users[0]);
   const visit={...selection,date:initialBookingDate(new Date(Date.now()+11*86400000))};
   const next=visitDestination(visit);
+  await page.goto('/cookies');await page.getByRole('group',{name:'Cookie preferences'}).getByRole('checkbox').check();await page.getByRole('group',{name:'Cookie preferences'}).getByRole('button',{name:'Save preferences'}).click();
   await page.goto(next);await expect(page.getByLabel('Verified visit quote')).toContainText('₦4,000');
   await page.getByRole('radio',{name:/Full payment/}).check();
   await expect(page.getByLabel('Payment summary')).toContainText('₦0');
   await page.getByRole('radio',{name:/Custom amount/}).check();
   const amount=page.getByLabel('Payment amount in naira');const reserve=page.getByRole('button',{name:'Continue to test payment'});
   for(const value of ['1599.99','4000.01','1.001']) {await amount.fill(value);await expect(reserve).toBeDisabled();}
-  await page.getByRole('button',{name:'Cookie settings',exact:true}).click();await page.getByRole('checkbox',{name:/Remember booking/}).check();await page.getByRole('button',{name:'Save preferences'}).click();await waitForReservationSecurity(page);await amount.fill('2000.01');await expect(reserve).toBeEnabled();
+  await waitForReservationSecurity(page);await amount.fill('2000.01');await expect(reserve).toBeEnabled();
   await expect(page.getByLabel('Payment summary')).toContainText('₦2,000.01');await expect(page.getByLabel('Payment summary')).toContainText('₦1,999.99');
   const axe=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();expect(axe.violations.map(v=>v.id)).toEqual([]);
   mkdirSync('docs/screenshots/m4-refinement',{recursive:true});
   await page.screenshot({path:`docs/screenshots/m4-refinement/payment-custom-${info.project.name}.png`,fullPage:true,animations:'disabled',style:'.skip-link:not(:focus){visibility:hidden !important}'});
   await context.clearCookies({name:/^sb-/});await reserve.click();await expect(page).toHaveURL(/\/login\?message=session-ended/);
   await expect(page.locator('input[name=next]')).toHaveValue(next);
-  await page.getByRole('link',{name:'Keep browsing',exact:true}).click();
+  await page.getByRole('link',{name:'Edit space, date or hours',exact:false}).click();
   await expect(page.getByLabel('Your space',{exact:true})).toHaveAttribute('data-value',visit.resource);await expect(page.getByLabel('Date',{exact:true})).toHaveAttribute('data-value',visit.date);
   await expect(page.getByLabel('Start time · WAT',{exact:true})).toHaveAttribute('data-value','10');await expect(page.getByLabel('Duration',{exact:true})).toHaveAttribute('data-value','2');
   await expect(page.getByRole('link',{name:'Continue to booking review'})).toHaveCount(0);
@@ -181,7 +182,7 @@ test('authenticated application hold reaches PostgreSQL as its customer; another
   // interface has its own real hosted-payment browser proof.
   expect((await context.request.post(`${origin}/api/holds`,{headers:{...headers,...await reservationHeaders(context,destination)},data:payload})).status()).toBe(201);
   await page.goto('/account');
-  await expect(page.getByRole('heading',{level:1})).toHaveText('Your visits.');
+  await expect(page.getByRole('heading',{level:1})).toHaveText('Your account.');
   const result = await context.request.get(`${origin}/api/holds`);expect(result.status()).toBe(200);assertPrivate(result);
   const body = await result.json();expect(body.bookings).toHaveLength(1);
   const hold = body.bookings[0];expect(hold.owner_id).toBe(users[0].id);expect(hold.resource_id).toBe(resource);

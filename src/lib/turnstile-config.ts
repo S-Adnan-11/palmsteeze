@@ -1,12 +1,12 @@
-import { configuredAppOrigin } from './deployment';
+import { configuredAppOrigin,validatedAppOrigin } from './deployment';
 
 type Environment = Record<string,string|undefined>;
 export const reservationAction = 'reserve';
 export const entranceAction = 'entrance';
 export type TurnstileAction = typeof reservationAction|typeof entranceAction;
 export function isTurnstileTestKey(value:string) { return /^[123]x0{10,}/.test(value); }
-export function turnstileConfiguration(env:Environment) {
-  const hostname = new URL(configuredAppOrigin(env)).hostname;
+export function turnstileConfiguration(env:Environment,origin=configuredAppOrigin(env)) {
+  const hostname = new URL(validatedAppOrigin(origin,env)).hostname;
   const local = ['localhost','127.0.0.1'].includes(hostname) && !env.VERCEL_ENV && env.VERCEL !== '1';
   const siteKey = env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || '';
   const secret = env.TURNSTILE_SECRET_KEY || '';

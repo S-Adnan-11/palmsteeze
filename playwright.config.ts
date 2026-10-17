@@ -7,14 +7,14 @@ export default defineConfig({
   testDir:'./tests/browser',fullyParallel:false,workers:1,timeout:30000,
   testMatch:mode === 'journey' ? ['journey.spec.ts','refinement.spec.ts','auth.spec.ts'] : mode === 'clarity' ? ['clarity.spec.ts','polish.spec.ts','refinement.spec.ts','auth.spec.ts'] : mode === 'polish' ? ['polish.spec.ts','refinement.spec.ts','auth.spec.ts'] : mode === 'refinement' ? ['refinement.spec.ts','auth.spec.ts'] : mode === 'deployment' ? 'deployment.spec.ts' : mode === 'redesign' ? ['portfolio.spec.ts','redesign.spec.ts','live.spec.ts','auth.spec.ts','payments.spec.ts','admin.spec.ts'] : mode === 'portfolio' ? 'portfolio.spec.ts' : mode === 'admin' ? 'admin.spec.ts' : mode === 'payments' ? 'payments.spec.ts' : mode === 'auth' ? 'auth.spec.ts' : mode === 'live' ? 'live.spec.ts' : mode === 'unavailable' ? 'unavailable.spec.ts' : 'smoke.spec.ts',
   reporter:[['list'],['html',{open:'never'}]],
-  use:{baseURL:'http://127.0.0.1:3000',channel:'chrome',actionTimeout:30000,trace:'retain-on-failure',screenshot:'only-on-failure'},
+  use:{baseURL:'http://localhost:3000',channel:'chrome',actionTimeout:30000,trace:'retain-on-failure',screenshot:'only-on-failure'},
   projects:[
     {name:'desktop',use:{...devices['Desktop Chrome'],viewport:{width:1440,height:1000}}},
     {name:'mobile',use:{...devices['iPhone 13'],defaultBrowserType:'chromium'}},
   ],
   webServer:{
     command:`"${process.execPath}" node_modules/next/dist/bin/next start --hostname 127.0.0.1 --port 3000`,
-    url:'http://127.0.0.1:3000',reuseExistingServer:false,timeout:60000,
+    url:'http://localhost:3000',reuseExistingServer:false,timeout:60000,
     env:{NEXT_TELEMETRY_DISABLED:'1'},
   },
 });

@@ -2,7 +2,8 @@ import { createHash } from 'node:crypto';
 import { readFileSync, readdirSync } from 'node:fs';
 import { connectDatabase, inspectDatabase, verifyProject, safeFailure, ReadinessError } from './lib/database';
 import {securityKey} from '../src/lib/security-sessions';
-import {configuredAppOrigin} from '../src/lib/deployment';
+import {configuredAppOrigin,allowedAppOrigins} from '../src/lib/deployment';
+import {sharedServiceOrigins} from '../supabase/functions/_shared/application-origins';
 
 async function run() {
   const command = process.argv[2];
@@ -38,7 +39,9 @@ async function run() {
           const key=securityKey(process.env);const origin=configuredAppOrigin(process.env);
           const existing=await client.query('select signing_key=$1 and app_origin=$2 matches from private.reservation_security_config where singleton',[key,origin]);
           if(existing.rowCount&&!existing.rows[0].matches) throw new ReadinessError('Reservation signing configuration mismatch; rotate through the reviewed procedure. Values withheld.');
-          if(!existing.rowCount) await client.query('insert into private.reservation_security_config(signing_key,app_origin) values($1,$2)',[key,origin]);
+          if(!existing.rowCount) await client.query('insert into private.reservation_security_config(signing_key,app_origin,allowed_origins) values($1,$2,$3)',[key,origin,allowedAppOrigins(process.env)]);
+          if(!sharedServiceOrigins.some(value=>value===origin)) throw new ReadinessError('Unknown shared demo environment; explicit origin review required.');
+          await client.query('update private.reservation_security_config set allowed_origins=$1 where singleton',[sharedServiceOrigins]);
           console.log('PASSED: private reservation signing configuration matches; values withheld.');
         }
       } else {
