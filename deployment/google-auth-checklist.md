@@ -2,6 +2,10 @@
 
 Reviewed 18 October 2026. Google remains the only customer sign-in provider. Current application requests `openid email profile` through Supabase; Google secrets stay in Supabase. This checklist records account actions and evidence, not a claim that Google branding or public-audience verification is complete.
 
+## Owner-reported configuration, 18 October 2026
+
+The owner confirms configuring the existing project's Branding fields: app name **PalmSteeze**, the approved logo, monitored support/contact email, homepage `https://palmsteeze.devs.surf`, privacy `https://palmsteeze.devs.surf/privacy`, and terms `https://palmsteeze.devs.surf/terms`. This completes the reported field-entry action. It does not establish Draft/Published Branding, verification approval or Audience/publishing status; those actual labels remain requested. Earlier owner-observed phone Google sign-in and genuine Turnstile success are separately recorded. No OAuth client, callback, development entry, Auth domain, provider or deployment was changed for this documentation update.
+
 ## Identify the existing client
 
 - In Supabase Authentication → Sign In / Providers → Google, identify the configured Web client ID privately. Match it to Google Auth Platform → Clients in the owning Google Cloud project. Do not infer the project from a displayed app/widget name or put the client secret into application hosting.
