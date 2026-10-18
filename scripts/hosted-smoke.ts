@@ -8,7 +8,14 @@ async function main() {
   if(index<0||!process.argv[index+1])throw new ReadinessError('Supply --origin https://palmsteeze.devs.surf after publication.');
   const origin=configuredAppOrigin({APP_ORIGIN:process.argv[index+1],VERCEL:'1'});
   const request=(path:string,init:RequestInit={})=>fetch(origin+path,{...init,redirect:'manual',signal:AbortSignal.timeout(30000)});
-  for(const path of ['/','/account','/admin','/preview/admin','/portfolio']) {
+  const homepage=await request('/');assert.equal(homepage.status,200);
+  assert.equal(homepage.headers.get('location'),null);
+  const overview=await homepage.text();
+  assert.match(overview,/Coworking booking demo/);assert.match(overview,/booking and refund history/);
+  assert.match(overview,/Google sign-in uses your name, email address and profile photo/);
+  assert.match(overview,/href="\/privacy"/);assert.match(overview,/href="\/terms"/);
+  assert.match(homepage.headers.get('cache-control')||'',/no-store/);
+  for(const path of ['/account','/admin','/preview/admin','/portfolio']) {
     const response=await request(path);assert.equal(response.status,307);
     const destination=new URL(response.headers.get('location')!,origin);
     assert.equal(destination.origin,origin);assert.equal(destination.pathname,'/verify');
@@ -36,7 +43,7 @@ async function main() {
   for(const path of ['/brand/v2/favicon.svg','/brand/v2/open-graph.png','/art/workspace-video/workspace-mobile-poster.webp','/licenses/third-party-notices.txt','/licenses/simple-icons-CC0.txt','/licenses/three-MIT.txt','/licenses/animejs-MIT.txt'])assert.equal((await request(path)).status,200);
   const movie=await request('/art/workspace-video/workspace-mobile.mp4',{headers:{Range:'bytes=0-1023'}});
   assert.equal(movie.status,206);assert.match(movie.headers.get('content-range')||'',/^bytes 0-1023\//);
-  const report={checkedAt:new Date().toISOString(),origin,status:'PASSED',tls:'Certificate and hostname verification enabled',entranceEnforced:true,legalAndSettingsUngated:true,secureHostOnlyPreferences:true,cancelledCallbackSameOrigin:true,invalidGenuineVerificationRejected:true,assetsAndVideoRange:true,recordsAndPaymentsCreated:0,limits:'No successful genuine challenge, complete Google login, authenticated hosted customer/admin view, signed payment delivery or physical-phone proof in this probe.'};
+  const report={checkedAt:new Date().toISOString(),origin,status:'PASSED',tls:'Certificate and hostname verification enabled',publicHomepagePurposeAndGoogleDataUse:true,entranceEnforced:true,legalAndSettingsUngated:true,secureHostOnlyPreferences:true,cancelledCallbackSameOrigin:true,invalidGenuineVerificationRejected:true,assetsAndVideoRange:true,recordsAndPaymentsCreated:0,limits:'No successful genuine challenge, complete Google login, authenticated hosted customer/admin view, signed payment delivery or physical-phone proof in this probe.'};
   mkdirSync('docs/evidence/m5',{recursive:true});
   writeFileSync(`docs/evidence/m5/hosted-smoke-${Date.now()}.json`,JSON.stringify(report,null,2),{flag:'wx'});
   console.log(JSON.stringify(report));

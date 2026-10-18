@@ -2,6 +2,11 @@ body { padding-bottom: var(--cookie-banner-space,0px); }
 .entrance-header { max-width: 1280px; margin: auto; padding: 26px 40px; }
 .entrance-page { min-height: calc(100svh - 170px); padding: 32px 24px 56px; display: grid; place-items: center; }
 .entrance-card { width: min(100%,440px); text-align: center; }
+.entrance-content { width: min(100%,440px); }
+.entrance-overview { text-align: center; margin-bottom: 28px; }
+.entrance-overview h1 { font-size: clamp(32px,6vw,44px); margin: 0 0 18px; }
+.entrance-overview p { font-size: 14px; line-height: 1.75; margin-bottom: 16px; }
+.entrance-overview .eyebrow { font-size: 11px; }
 .entrance-card h1 { font-size: clamp(38px,6vw,52px); margin-bottom: 32px; }
 .entrance-card h1 em { display: block; }
 .entrance-card .reservation-security { width: min(100%,360px); margin: 0 auto; }

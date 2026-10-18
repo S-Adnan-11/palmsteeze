@@ -6,7 +6,19 @@ Reviewed 18 October 2026. Google remains the only customer sign-in provider. Cur
 
 The owner confirms configuring the existing project's Branding fields: app name **PalmSteeze**, the approved logo, monitored support/contact email, homepage `https://palmsteeze.devs.surf`, privacy `https://palmsteeze.devs.surf/privacy`, and terms `https://palmsteeze.devs.surf/terms`. This completes the reported field-entry action. It does not establish Draft/Published Branding, verification approval or Audience/publishing status; those actual labels remain requested. Earlier owner-observed phone Google sign-in and genuine Turnstile success are separately recorded. No OAuth client, callback, development entry, Auth domain, provider or deployment was changed for this documentation update.
 
-## Identify the existing client
+## Verification findings and remediation, 18 October 2026
+
+The owner reports a verification attempt flagged homepage ownership and missing app-purpose information. This is a failed review, not verified branding. The previous anonymous homepage redirected to entrance verification before exposing product information. The correction serves a public, server-rendered overview at the same canonical `/` URL, explaining booking/payment/history features and Google name/email/photo use. Full application access still requires the original signed clearance; protected APIs remain gated. No user-agent exemption is used. Purpose visibility does not establish Google approval.
+
+For the ownership finding, use a Google account that is a Project Owner of the existing Cloud project. Google's OAuth guidance requests a DNS-verified Search Console **Domain property**, not merely a URL-prefix/HTML tag verification. Search Console accepts a subdomain as a Domain property: begin with **palmsteeze.devs.surf**, with no scheme or path. Obtain the exact DNS record before changing anything. Keep the working Vercel CNAME. A TXT at the same owner name can conflict with that CNAME; use a Google-offered supported alternative or involve the DNS operator, without replacing routing or inventing a record. Vercel's `_vercel` TXT is unrelated to Google ownership.
+
+If OAuth review still requests the registrable parent **devs.surf**, do not claim that parent or ask for its Search Console ownership. Record the exact finding and request Google review/support for this shared-subdomain arrangement, with evidence of the specific subdomain property and delegated DNS control. Successful subdomain verification alone is not a promise that Google's brand review will accept it. Keep the intended website address and existing free Supabase callback.
+
+After Search Console actually confirms ownership, follow the review's requested **24-hour wait**, then retry once both findings are addressed. Do not start that wait from merely entering a DNS record or publishing the homepage correction. No verification retry or message to Google/the DNS operator has been sent by release tooling.
+
+Sources: [homepage findings](https://support.google.com/cloud/answer/13807376?hl=en), [OAuth domain verification](https://support.google.com/cloud/answer/13804266?hl=en), [Search Console Domain property syntax](https://support.google.com/webmasters/answer/34592?hl=en).
+
+## Identify the existing client and callbacks
 
 - In Supabase Authentication → Sign In / Providers → Google, identify the configured Web client ID privately. Match it to Google Auth Platform → Clients in the owning Google Cloud project. Do not infer the project from a displayed app/widget name or put the client secret into application hosting.
 - The Google client's authorized provider redirect must remain exactly `https://hjcntuysnzzkddpnulaa.supabase.co/auth/v1/callback`. The application's `https://palmsteeze.devs.surf/auth/callback` belongs in Supabase's redirect allowlist, not as a replacement Google provider callback.

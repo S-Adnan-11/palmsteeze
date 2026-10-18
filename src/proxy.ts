@@ -19,6 +19,12 @@ export async function proxy(request:NextRequest) {
     }
     const destination=entranceDestination(path+request.nextUrl.search)||'/';
     const url=new URL('/verify',origin);url.searchParams.set('next',destination);
+    // Publish product information at the canonical homepage without issuing
+    // clearance or exposing the application behind the entrance challenge.
+    if(path==='/') {
+      url.searchParams.set('overview','1');
+      const response=NextResponse.rewrite(url);privateHeaders(response.headers);return response;
+    }
     const response=NextResponse.redirect(url,307);privateHeaders(response.headers);return response;
   }
   if(entranceExempt(path)) return NextResponse.next();
