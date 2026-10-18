@@ -10,6 +10,7 @@ The release uses Node 24.x (preflight >=24.21.0 <25), npm 11.19.0, locked depend
 
 1. Confirm active Hobby/no trial and remaining free account usage. No paid capacity or live payments.
 2. Set the exact hosted Supabase Site URL and `/auth/callback`, preserving localhost/tunnel and existing callbacks. Google's provider return stays on Supabase.
+   Complete the [Google Auth Platform checklist](google-auth-checklist.md): identify the current client, inspect Branding/Audience/publishing and actual verification requirements. Do not enable a paid Auth custom domain or another customer provider.
 3. Provision only the reviewed exact shared capability origins. Hosted HTTP requests accept only their canonical origin; backend return validation supports the explicit localhost/tunnel/hosted destinations.
 4. Keep the existing payment worker, signed webhook, secrets, Vault token and one minute recovery schedule. Historical null-origin attempts retain their existing fallback; persisted initiating origins and Stripe sessions are immutable. Do not add competing workers or replace sessions to change URLs.
 5. Add the custom domain to the same project. Obtain its current exact DNS/verification records from Vercel; do not guess generic values or change unrelated DNS.

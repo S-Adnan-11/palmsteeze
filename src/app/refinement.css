@@ -1,4 +1,4 @@
-/* Shared Card foundation adapted from shadcn/ui; MIT notice in THIRD_PARTY_NOTICES.md. */
+/* Shared Card foundation adapted from shadcn/ui; MIT notice in public/licenses/third-party-notices.txt. */
 .foundation-card { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: var(--panel-radius); background: var(--surface); overflow: hidden; }
 .foundation-card-content { padding: 16px; }
 .choice-label { position: relative; margin: 0; cursor: pointer; font-weight: 400; }

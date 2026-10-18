@@ -44,7 +44,7 @@ Use PowerShell and the project-local Node **24.21.0** / npm **11.19.0** runtime:
 
 Copy `.env.example` to ignored `.env.local` and fill privately. Without Supabase configuration, inventory is explicitly synthetic; a configured failed service renders unavailable. Auth/reservations require the existing properly migrated project and genuine security configuration. Do not provision a replacement, reset the database or replay seeds against retained records. Development and hosting share the database, so local mutations affect the hosted demo.
 
-The default origin remains `http://localhost:3000`; the existing authenticated development tunnel stays supported. See [development origins](DEVELOPMENT_TUNNEL.md) before changing a hostname or return configuration.
+The default origin remains `http://localhost:3000`; the existing authenticated development tunnel stays supported. The explicit development/hosted origin list is in `supabase/functions/_shared/application-origins.ts`. Preserve initiating payment origins and existing provider callbacks when maintaining it.
 
 ## Checks
 
@@ -81,6 +81,6 @@ See [sandbox deployment](deployment/README.md) and [hosted variable allowlist](d
 
 Historical M3 evidence includes an actual delayed refund failure and permanently refused replacement. The original replacement remains FAILED; the accepted exception stops automatic retries and leaves reimbursement outstanding for assistance. No alternate reimbursement is sent. There is no guaranteed availability, automatic timed account purge or accessibility-compliance certification. The accepted normal-motion video has no manual pause mechanism, a documented WCAG 2.2 SC 2.2.2 tradeoff. Genuine regular-browser challenges, full hosted Google/selection/payment journeys and physical-phone acceptance are distinct from automated tests.
 
-The approved identity and asset sources are recorded in [asset provenance](ASSET_PROVENANCE.md); font notices accompany fonts, and available asset notices are under `public/licenses/`. Implementation/debugging/testing/documentation were AI-assisted with Codex. This does not imply unaided authorship or invented customer research. Decorative social icons are placeholders, not active profiles or personal-account links.
+The approved brand kit and procedural workspace scene supply the identity/video; architectural images were AI-generated for this fictional venue. Adapted Card/arrow attribution is in [third-party notices](public/licenses/third-party-notices.txt); font notices accompany fonts, and Three.js, Anime.js and Simple Icons notices are under `public/licenses/`. Detailed project provenance is retained privately. Implementation/debugging/testing/documentation were AI-assisted with Codex. This does not imply unaided authorship or invented customer research. Decorative social icons are placeholders, not active profiles or personal-account links.
 
 [GitHub](https://github.com/S-Adnan-11) · [Portfolio](https://s-adnan.dev) · Privacy/demo contact: s.adnan.werk@gmail.com

@@ -1,5 +1,5 @@
 // Adapted from shadcn/ui Card, MIT (Copyright (c) 2023 shadcn).
-// Source and complete licence: THIRD_PARTY_NOTICES.md.
+// Source and complete licence: public/licenses/third-party-notices.txt.
 import type {ComponentProps} from 'react';
 
 export function Card({className='',...props}:ComponentProps<'div'>) {

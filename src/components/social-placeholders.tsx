@@ -1,4 +1,4 @@
-// Simple Icons, CC0 1.0; source revision and trademark note in ASSET_PROVENANCE.md.
+// Simple Icons, CC0 1.0; source revision and trademark note in private docs/ASSET_PROVENANCE.md.
 // Decorative placeholders intentionally have no links, handlers, labels or focus.
 export function SocialPlaceholders() {
   return <div className="footer-socials" aria-hidden="true">
