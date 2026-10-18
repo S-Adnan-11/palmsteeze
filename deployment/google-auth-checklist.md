@@ -29,6 +29,4 @@ Ensure reviewers can reach the required product/legal information without an acc
 
 Use a normal browser to check start, cancel, retry, successful Google callback, saved selection, necessary-only preferences, sign-out, and localhost/tunnel continuity. Check a phone separately. Record the real consent name/domain/warnings without storing identities, authorization codes or tokens. Automated synthetic Auth and callback-cancellation checks do not establish Google consent success.
 
-A GitHub application named `palmsteeze-local` must be identified separately by its exact settings page, app owner/type and callback. Repository evidence identifies a Cloudflare widget with that name; that is not evidence about a GitHub application. Do not rename/revoke it or add GitHub customer sign-in based on the label alone.
-
 Sources: [Google app states](https://developers.google.com/identity/protocols/oauth2/production-readiness/overview), [brand verification](https://developers.google.com/identity/protocols/oauth2/production-readiness/brand-verification), [production policies](https://developers.google.com/identity/protocols/oauth2/production-readiness/policy-compliance), [Supabase Google setup](https://supabase.com/docs/guides/auth/social-login/auth-google).

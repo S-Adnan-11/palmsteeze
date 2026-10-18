@@ -1,5 +1,15 @@
 # PalmSteeze sandbox hosting
 
+## Delivered 18 October 2026
+
+Canonical HTTPS is live at **https://palmsteeze.devs.surf** from application revision `9ed3138fdf6df9f28f95b63a3b591cc327872e08`, deployment `dpl_CtXYDvvpGZBmnqgsp13KRr8rBEfi`. Vercel reports READY on the existing active nontrial Hobby project. The actual cloud preflight used Node 24.21.0 and npm 11.19.0; compilation and TypeScript passed. Automatic Git deployments remain disabled. Later documentation-only commits do not change that deployed application revision.
+
+Devs.Surf published the owner-entered `_vercel` TXT at the parent `_vercel.devs.surf`, exactly where Vercel requested it; `_vercel.palmsteeze.devs.surf` was absent. The existing project verification returned HTTP 200 and `verified: true`; no operator escalation remains necessary for that challenge. The CNAME matches the exact project target. All eleven application-only Production variables are configured; hosted keys are kept in ignored `.env.hosted.local`. Restore the original development widget pair in `.env.local` if it was replaced when entering the hosted pair.
+
+Supabase's hosted Site URL and exact callback are confirmed, with localhost/tunnel callbacks retained. The original Google provider callback, signed payment webhook, worker version 21 and single recovery schedule remain. Actual recent cron HTTP 200 and a protected zero-work recovery probe pass. No database replacement or paid service was enabled.
+
+HTTPS smoke verifies entrance denial, ungated legal/settings, secure preferences, cancelled callback, invalid-token rejection, assets and video range delivery. Twenty-four desktop/mobile hosted screens pass using legitimate isolated Auth fixtures and explicitly controlled signed entrance clearance; fixtures were removed. Those checks do not establish genuine challenge success, Google consent completion or a full hosted payment journey. A genuine automated ordinary-click attempt returned `600010`, no token/clearance; normal-browser and phone acceptance remain. Inspect [Google branding/audience/verification](google-auth-checklist.md) separately; dashboard status is not available to the release tooling. Account-wide remaining free usage still needs owner dashboard confirmation.
+
 Target: **https://palmsteeze.devs.surf**, personal/noncommercial Vercel Hobby demo. Reuse the existing Supabase project and Stripe sandbox. Localhost and the exact development tunnel remain independent application origins sharing the same database. Changes to that database affect the hosted demo.
 
 Use [hosted.env.example](hosted.env.example) as an allowlist, not `.env.local`. No database password, Supabase service/Management key, Google secret, Stripe key or webhook secret belongs in Vercel. Hosted Turnstile must use genuine matching keys, exact hostname and disabled test mode. The server signing key must match the private capability configuration. Provider/API secrets remain server-only.
@@ -30,6 +40,8 @@ After deployment, inspect cloud build/runtime/revision and canonical HTTPS. Run 
 ## Rollback and maintenance
 
 Use a previously verified hosted-compatible deployment at the same canonical origin. First publication has no previous hosted rollback artifact: retain its archive/deployment ID and use a bounded forward fix or disable traffic if necessary. Old source checkpoints are preserved history, not automatically safe hosted rollback targets.
+
+The first retained baseline is `dpl_CtXYDvvpGZBmnqgsp13KRr8rBEfi` / `9ed3138`. After a later release, if this is still the immediately previous Production deployment, run `./scripts/vercel.ps1 rollback dpl_CtXYDvvpGZBmnqgsp13KRr8rBEfi --scope ad-dev3` and inspect rollback status plus canonical HTTPS smoke. Hobby permits rollback only to the immediately previous production deployment; do not upgrade to reach an older one. For an older compatible source, rebuild/deploy its retained reviewed archive through the same project after verifying current environment/schema compatibility. This performs a new build and consumes free allowance. [Vercel rollback documentation](https://vercel.com/docs/cli/rollback).
 
 Never reset/roll back the shared database, rewrite booking snapshots, remove an origin with unresolved payment attempts or downgrade the worker below the persisted-origin contract. Preserve old 30% snapshots, current 40% minimum, collected-minus-prior-refunds calculations and permanent-refusal history. Use fixture-scoped tests and cleanup only; retain paid/uncertain evidence.
 
