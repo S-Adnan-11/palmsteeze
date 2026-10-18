@@ -4,7 +4,7 @@ A personal coworking-booking project by **Adnan Muhammad Sadiq**, inspired by lo
 
 The imagined venue is in **Agege, Lagos**. It has 24 individually bookable desks and three whole meeting rooms: 27 resources and 44 seats. There is no real venue, street address or live payment service. Stripe stays sandbox-only; Google account data can still be real.
 
-Hosted sandbox demo: **https://palmsteeze.devs.surf**, application revision `bdb3e4723c6f204d49abd654d1eaa90a5613100e` published 18 October 2026. Actual HTTPS smoke and controlled fixture screen checks pass, including public licence-text access. The owner confirmed genuine Turnstile and Google sign-in on a phone browser; automated genuine entrance separately returned Cloudflare `600010` without clearance. Full saved-selection/cancel/retry, hosted sandbox payment returns and broader phone acceptance remain separate walkthroughs.
+Hosted sandbox demo: **https://palmsteeze.devs.surf**, application revision `10a6713eaa2c771f64f9cf74fa6a380abbc659c6` published 18 October 2026. Anonymous visitors can read the app's purpose and Google-data use at `/` without JavaScript or security clearance; entering the full application still requires verification. HTTPS smoke, six targeted desktop/mobile homepage checks and earlier controlled fixture checks pass. The owner confirmed genuine Turnstile and Google sign-in on a phone browser. Google brand verification separately flagged ownership and homepage information; the homepage is corrected, while Search Console ownership and Google approval remain unconfirmed. Full saved-selection/cancel/retry, hosted sandbox returns and broader phone acceptance remain separate walkthroughs.
 
 ## What it demonstrates
 
