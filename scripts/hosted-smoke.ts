@@ -33,7 +33,7 @@ async function main() {
   assert.equal(new URL(callback.headers.get('location')!,origin).origin,origin);
   const invalid=await request('/api/verification',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json'},body:JSON.stringify({token:'invalid-release-probe',next:'/account'})});
   assert.equal(invalid.status,403);assert.doesNotMatch(invalid.headers.get('set-cookie')||'',/ps-clearance=/);
-  for(const path of ['/brand/v2/favicon.svg','/brand/v2/open-graph.png','/art/workspace-video/workspace-mobile-poster.webp'])assert.equal((await request(path)).status,200);
+  for(const path of ['/brand/v2/favicon.svg','/brand/v2/open-graph.png','/art/workspace-video/workspace-mobile-poster.webp','/licenses/third-party-notices.txt','/licenses/simple-icons-CC0.txt','/licenses/three-MIT.txt','/licenses/animejs-MIT.txt'])assert.equal((await request(path)).status,200);
   const movie=await request('/art/workspace-video/workspace-mobile.mp4',{headers:{Range:'bytes=0-1023'}});
   assert.equal(movie.status,206);assert.match(movie.headers.get('content-range')||'',/^bytes 0-1023\//);
   const report={checkedAt:new Date().toISOString(),origin,status:'PASSED',tls:'Certificate and hostname verification enabled',entranceEnforced:true,legalAndSettingsUngated:true,secureHostOnlyPreferences:true,cancelledCallbackSameOrigin:true,invalidGenuineVerificationRejected:true,assetsAndVideoRange:true,recordsAndPaymentsCreated:0,limits:'No successful genuine challenge, complete Google login, authenticated hosted customer/admin view, signed payment delivery or physical-phone proof in this probe.'};

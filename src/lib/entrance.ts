@@ -9,6 +9,7 @@ export function entranceExempt(path:string) {
 export function publicAsset(path:string) {
   if(path==='/favicon.ico'||path==='/_next/image'||path==='/_next/webpack-hmr'||path.startsWith('/_next/static/')) return true;
   if(/^\/art\/workspace-video\/workspace-(?:desktop|tablet|mobile)\.mp4$/.test(path)) return true;
+  if(/^\/licenses\/[a-zA-Z0-9_-]+\.txt$/.test(path)) return true;
   return /^\/(?:brand|spaces|fonts|art)\/[a-zA-Z0-9_/-]+\.(?:svg|png|ico|webp|woff2?|txt|json)$/.test(path)
     ||path==='/auth/google-g.png';
 }

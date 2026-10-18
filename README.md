@@ -4,7 +4,7 @@ A personal coworking-booking project by **Adnan Muhammad Sadiq**, inspired by lo
 
 The imagined venue is in **Agege, Lagos**. It has 24 individually bookable desks and three whole meeting rooms: 27 resources and 44 seats. There is no real venue, street address or live payment service. Stripe stays sandbox-only; Google account data can still be real.
 
-Hosted sandbox demo: **https://palmsteeze.devs.surf**, published 18 October 2026 from application revision `9ed3138fdf6df9f28f95b63a3b591cc327872e08`. Actual HTTPS smoke and controlled fixture screen checks pass. Successful genuine entrance, completed owner Google sign-in and physical-phone acceptance remain separate checks; automated genuine entrance returned Cloudflare `600010` without clearance.
+Hosted sandbox demo: **https://palmsteeze.devs.surf**, first published 18 October 2026 from baseline `9ed3138fdf6df9f28f95b63a3b591cc327872e08`, followed by a correction for public licence-text access. Exact deployed revisions are recorded in Vercel deployment metadata and release records. Actual HTTPS smoke and controlled fixture screen checks pass. Successful genuine entrance, completed owner Google sign-in and physical-phone acceptance remain separate checks; automated genuine entrance returned Cloudflare `600010` without clearance.
 
 ## What it demonstrates
 
