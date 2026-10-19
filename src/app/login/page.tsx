@@ -31,5 +31,6 @@ export default async function Login({searchParams}:{searchParams:Promise<Record<
     {message && <p className="auth-notice" role="status">{message}</p>}
     {selection&&<div className="signin-selection"><p className="eyebrow">Your selection</p><strong>{resource?.name||'Your selected workspace'}</strong><p>{formatVisitDate(selection.date)} · {String(selection.hour).padStart(2,'0')}:00–{String(selection.hour+selection.duration).padStart(2,'0')}:00 WAT · {selection.duration} {selection.duration===1?'hour':'hours'}</p><Link href={back}>Edit space, date or hours ↗</Link><p className="field-help">No space reserved yet.</p></div>}
     <GoogleSignIn next={next || '/account'}/>
+    <p className="field-help">Google shares your name, email address and basic profile information, including your profile photo, to identify your account and connect it to your bookings. Read our <Link href="/privacy#data">Privacy notice</Link>.</p>
     </section></main><SiteFooter/></>;
 }

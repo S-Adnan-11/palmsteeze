@@ -1,7 +1,7 @@
-import type {Metadata} from 'next';
+import {searchPage} from '@/lib/search';
 import Link from 'next/link';
 import {PolicyPage} from '@/components/policy-page';
-export const metadata:Metadata={alternates:{canonical:"/terms"},title:'Demo Terms · PalmSteeze'};
+export function generateMetadata(){return searchPage('/terms',"Demo Terms · PalmSteeze","Terms for the fictional PalmSteeze coworking booking demo, including sandbox payments, cancellation and verified refund progress.");}
 const sections=[{id:'demo',title:'A portfolio demonstration'},{id:'booking',title:'Booking & test payments'},{id:'cancellation',title:'Cancellation & refunds'},{id:'use',title:'Using the demo'}];
 export default function Terms() {
   return <PolicyPage title="Demo Terms" intro="Explore the booking experience with a fictional Lagos workspace and sandbox payments. No physical space or real payment is offered." sections={sections}>

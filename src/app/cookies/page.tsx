@@ -1,8 +1,8 @@
-import type {Metadata} from 'next';
+import {searchPage} from '@/lib/search';
 import Link from 'next/link';
 import {PolicyPage} from '@/components/policy-page';
 import {CookiePreferences} from '@/components/privacy-preferences';
-export const metadata:Metadata={alternates:{canonical:"/cookies"},title:'Cookies & storage · PalmSteeze'};
+export function generateMetadata(){return searchPage('/cookies',"Cookies & storage · PalmSteeze","Understand necessary security and sign-in cookies, and manage optional tab-local booking memory in the PalmSteeze demo.");}
 const sections=[{id:'browser',title:'Storage on this site'},{id:'services',title:'Provider pages & security'},{id:'choices',title:'Your controls'}];
 export default function Cookies() {
   return <PolicyPage title="Cookies & storage" intro="Necessary storage supports security and sign-in. Optional memory remembers booking and payment choices only if you accept it. There is no analytics or advertising storage." sections={sections}>

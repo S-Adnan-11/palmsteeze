@@ -6,20 +6,21 @@ import {createClearance} from '../../src/lib/security-sessions';
 const root=process.env.PALMSTEEZE_RELEASE_ROOT;
 test.use({trace:'off',video:'off',screenshot:'off'});
 
-test('anonymous homepage explains purpose and Google data use without JavaScript',async({browser,request},info)=>{
+test('anonymous homepage explains the demo without JavaScript or clearance',async({browser,request},info)=>{
   const context=await browser.newContext({javaScriptEnabled:false,viewport:info.project.use.viewport});
   try {
     const page=await context.newPage();const response=await page.goto('http://localhost:3000/');
     expect(response?.status()).toBe(200);expect(response?.headers().location).toBeUndefined();
-    await expect(page.getByRole('heading',{name:'PalmSteeze',exact:true})).toBeVisible();
-    await expect(page.locator('.entrance-overview')).toContainText('booking and refund history');
-    await expect(page.locator('.entrance-overview')).toContainText('Google sign-in uses your name, email address and profile photo');
+    await expect(page.getByRole('heading',{name:'Welcome to PalmSteeze.',exact:true})).toBeVisible();
+    await expect(page.locator('.entrance-overview')).toContainText('test bookings');
+    await page.getByText('About PalmSteeze',{exact:true}).click();
+    await expect(page.locator('.entrance-about')).toContainText('booking and refund history');
     await expect(page.getByRole('link',{name:'Privacy',exact:true})).toHaveAttribute('href','/privacy');
-    await expect(page.locator('link[rel=canonical]')).toHaveAttribute('href',/^http:\/\/localhost:3000\/?$/);
+    await expect(page.locator('link[rel=canonical]')).toHaveAttribute('href',/^https:\/\/palmsteeze\.devs\.surf\/?$/);
     expect(await page.locator('.rhythm-hero').count()).toBe(0);
     expect((await context.cookies()).some(c=>c.name==='ps-clearance')).toBe(false);
     const verifier=await request.get('/',{headers:{'User-Agent':'Google-Site-Verification/1.0'},maxRedirects:0});
-    expect(verifier.status()).toBe(200);expect(await verifier.text()).toContain('Google sign-in uses your name, email address and profile photo');
+    expect(verifier.status()).toBe(200);expect(await verifier.text()).toContain('About PalmSteeze');
     expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1)).toBe(false);
     if(root){mkdirSync(root+'/screenshots',{recursive:true});await page.screenshot({path:root+'/screenshots/no-js-'+info.project.name+'.png',fullPage:true});}
     for(const path of ['/account','/admin','/booking/review','/preview/admin']){

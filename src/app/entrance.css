@@ -5,7 +5,10 @@ body { padding-bottom: var(--cookie-banner-space,0px); }
 .entrance-content { width: min(100%,440px); }
 .entrance-overview { text-align: center; margin-bottom: 28px; }
 .entrance-overview h1 { font-size: clamp(32px,6vw,44px); margin: 0 0 18px; }
-.entrance-overview p { font-size: 14px; line-height: 1.75; margin-bottom: 16px; }
+.entrance-overview p { font-size: 16px; line-height: 1.75; margin-bottom: 16px; }
+.entrance-about { margin-top: 24px; color: var(--muted); font-size: 14px; line-height: 1.75; }
+.entrance-about summary { cursor: pointer; text-align: center; padding: 12px; text-decoration: underline; text-underline-offset: 4px; }
+.entrance-about p { margin: 12px 0 0; }
 .entrance-overview .eyebrow { font-size: 11px; }
 .entrance-card h1 { font-size: clamp(38px,6vw,52px); margin-bottom: 32px; }
 .entrance-card h1 em { display: block; }

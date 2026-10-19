@@ -1,4 +1,15 @@
-export const metadata={alternates:{canonical:'/'}};
+import type {Metadata} from 'next';
+import {cookies} from 'next/headers';
+import {currentAppOrigin} from '@/lib/request-origin';
+import {clearanceCookie,validClearance} from '@/lib/security-sessions';
+import {EntrancePage} from '@/components/entrance-page';
+import {demoDescription,searchPage} from '@/lib/search';
+import {entranceDestination} from '@/lib/entrance';
+export async function generateMetadata({searchParams}:{searchParams:Promise<Record<string,string|string[]|undefined>>}):Promise<Metadata> {
+  const metadata=searchPage('/','PalmSteeze · Coworking booking demo',demoDescription);
+  if(Object.keys(await searchParams).length)metadata.robots={index:false,follow:false};
+  return metadata;
+}
 import Image from 'next/image';
 import {getCatalog} from '@/lib/catalog';
 import {formatMoney} from '@/lib/domain';
@@ -8,7 +19,13 @@ import {SiteFooter} from '@/components/brand';
 import {ArrowLink} from '@/components/arrow-link';
 import {WorkspaceExperience} from '@/components/workspace-experience';
 export const dynamic='force-dynamic';
-export default async function Home() {
+export default async function Home({searchParams}:{searchParams:Promise<Record<string,string|string[]|undefined>>}) {
+  const origin=await currentAppOrigin();
+  if(!validClearance((await cookies()).get(clearanceCookie)?.value,process.env,Date.now(),origin)) {
+    const query=new URLSearchParams();
+    for(const [key,value] of Object.entries(await searchParams))for(const item of Array.isArray(value)?value:value===undefined?[]:[value])query.append(key,item);
+    return <EntrancePage destination={entranceDestination('/'+(query.size?'?'+query.toString():''))||'/'}/>;
+  }
   const catalog=await getCatalog();
   const weekdays=catalog.settings.open_weekdays.join(',')==='1,2,3,4,5,6'?'Mon–Sat':catalog.settings.open_weekdays.map(d=>['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d]).join(', ');
   const deskRates=catalog.resources.filter(r=>r.kind!=='room').map(r=>r.hourly_kobo);

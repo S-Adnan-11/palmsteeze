@@ -1,7 +1,7 @@
-import type {Metadata} from 'next';
+import {searchPage} from '@/lib/search';
 import Link from 'next/link';
 import {PolicyPage} from '@/components/policy-page';
-export const metadata:Metadata={alternates:{canonical:"/privacy"},title:'Privacy · PalmSteeze'};
+export function generateMetadata(){return searchPage('/privacy',"Privacy · PalmSteeze","How the PalmSteeze booking demo uses Google account information, booking records and security signals, with your choices and contact details.");}
 const sections=[{id:'operator',title:'This portfolio demo'},{id:'data',title:'What we use and why'},{id:'providers',title:'Services & international processing'},{id:'retention',title:'Retention & access'},{id:'rights',title:'Your choices & rights'}];
 export default function Privacy() {
   return <PolicyPage title="Privacy" intro="An imagined workspace can still involve real personal information. Here is what this demo uses, why it uses it and what choices you have." sections={sections}>

@@ -1,4 +1,4 @@
-const publicPages=new Set(['/privacy','/cookies','/terms','/verify']);
+const publicPages=new Set(['/privacy','/cookies','/terms','/verify','/robots.txt','/sitemap.xml']);
 const publicEndpoints=new Set(['/api/verification','/api/preferences','/auth/callback','/auth/sign-out']);
 export function entranceExempt(path:string) {
   if(publicPages.has(path)||publicEndpoints.has(path)) return true;

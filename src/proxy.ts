@@ -5,37 +5,50 @@ import { authCookieOptions,privateHeaders } from '@/lib/auth/config';
 import {requestAppOrigin} from '@/lib/deployment';
 import {clearanceCookie,validClearance} from '@/lib/security-sessions';
 import {entranceDestination,entranceExempt,publicAsset} from '@/lib/entrance';
+import {searchEnabled,searchablePaths} from '@/lib/search';
 
 export async function proxy(request:NextRequest) {
   const path=request.nextUrl.pathname;
-  if(publicAsset(path))return NextResponse.next();
+  if(publicAsset(path)) {
+    const response=NextResponse.next();
+    if(!searchEnabled(process.env))response.headers.set('X-Robots-Tag','noindex, nofollow');
+    return response;
+  }
+  const headers=(response:NextResponse)=>{
+    privateHeaders(response.headers);
+    if(!searchEnabled(process.env)||request.nextUrl.search||!searchablePaths.some(value=>value===path))response.headers.set('X-Robots-Tag','noindex, nofollow');
+    return response;
+  };
   let origin:string;
   try {origin=requestAppOrigin(request,process.env);}
-  catch {return new NextResponse('Unknown or conflicting application origin.',{status:403,headers:privateHeaders()});}
+  catch {
+    const response=new NextResponse('Unknown or conflicting application origin.',{status:403,headers:privateHeaders()});
+    response.headers.set('X-Robots-Tag','noindex, nofollow');return response;
+  }
   if(!entranceExempt(path)&&!validClearance(request.cookies.get(clearanceCookie)?.value,process.env,Date.now(),origin)) {
     if(path.startsWith('/api/')||!['GET','HEAD'].includes(request.method)) {
       const response=NextResponse.json({error:'Entrance verification is required or has expired. Verify again, then retry your request.',entranceRequired:true,verificationPath:'/verify'},{status:403});
-      privateHeaders(response.headers);return response;
+      return headers(response);
     }
-    const destination=entranceDestination(path+request.nextUrl.search)||'/';
+    const destination=entranceDestination(path+request.nextUrl.search);
+    // Unknown routes must reach Next's real 404 rather than a successful gate page.
+    if(!destination)return headers(NextResponse.next());
     const url=new URL('/verify',origin);url.searchParams.set('next',destination);
-    // Publish product information at the canonical homepage without issuing
-    // clearance or exposing the application behind the entrance challenge.
+    // The root renders the public entrance itself, without issuing clearance.
     if(path==='/') {
-      url.searchParams.set('overview','1');
-      const response=NextResponse.rewrite(url);privateHeaders(response.headers);return response;
+      return headers(NextResponse.next());
     }
-    const response=NextResponse.redirect(url,307);privateHeaders(response.headers);return response;
+    return headers(NextResponse.redirect(url,307));
   }
-  if(entranceExempt(path)) return NextResponse.next();
+  if(entranceExempt(path)) return headers(NextResponse.next());
   let response = NextResponse.next({request});
   // Public demonstrations are fully synthetic and do not refresh or inspect Auth.
   if (request.nextUrl.pathname === '/preview/admin' || request.nextUrl.pathname === '/portfolio') {
-    privateHeaders(response.headers);return response;
+    return headers(response);
   }
   // Never accept a user/role header as identity; pages/routes verify with Auth themselves.
   let config:ReturnType<typeof publicConfiguration>;
-  try {config = publicConfiguration();} catch {privateHeaders(response.headers);return response;}
+  try {config = publicConfiguration();} catch {return headers(response);}
   if (config && request.cookies.getAll().some((c) => c.name.startsWith('sb-'))) {
     const pendingCookies = new Map<string,{value:string;options:CookieOptions}>();
     const client = createServerClient(config.url,config.key,{cookieOptions:authCookieOptions(origin),global:{fetch:(input,init) => fetch(input,{...init,cache:'no-store'})},cookies:{
@@ -51,6 +64,6 @@ export async function proxy(request:NextRequest) {
     // This verifies with the Auth server and refreshes expired access tokens using the cookie refresh token.
     await client.auth.getUser().catch(() => null);
   }
-  privateHeaders(response.headers);return response;
+  return headers(response);
 }
 export const config = {matcher:['/:path*']};
