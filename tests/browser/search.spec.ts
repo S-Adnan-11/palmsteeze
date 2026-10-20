@@ -1,6 +1,26 @@
 import {test,expect} from '@playwright/test';
 import {createClearance} from '../../src/lib/security-sessions';
 
+test('homepage exposes one site-name node and a public PNG icon before and after clearance',async({request})=>{
+  for(const cleared of [false,true]){
+    const response=await request.get('/',{headers:cleared?{Cookie:'ps-clearance='+createClearance(process.env)}:{},maxRedirects:0});
+    expect(response.status()).toBe(200);
+    const html=await response.text();
+    const nodes=[...html.matchAll(/<script[^>]*type="application\/ld\+json"[^>]*>(.*?)<\/script>/gs)].map(match=>JSON.parse(match[1]));
+    expect(nodes).toEqual([{'@context':'https://schema.org','@type':'WebSite',name:'PalmSteeze',alternateName:'palmsteeze.devs.surf',url:'https://palmsteeze.devs.surf/'}]);
+    expect(html.includes('class="rhythm-hero"')).toBe(cleared);
+    expect(response.headers()['set-cookie']||'').not.toContain('ps-clearance=');
+    expect(html).toContain('<title>PalmSteeze · Coworking booking demo</title>');
+    expect(html).toContain('property="og:site_name" content="PalmSteeze"');
+    expect(html).toContain('rel="icon" href="/brand/v2/favicon-192.png" type="image/png" sizes="192x192"');
+  }
+  const icon=await request.get('/brand/v2/favicon-192.png',{maxRedirects:0});
+  expect(icon.status()).toBe(200);expect(icon.headers()['content-type']).toContain('image/png');
+  const bytes=await icon.body();
+  expect(bytes.subarray(0,8).toString('hex')).toBe('89504e470d0a1a0a');
+  expect(bytes.readUInt32BE(16)).toBe(192);expect(bytes.readUInt32BE(20)).toBe(192);
+});
+
 test('local discovery stays ungated and excluded; missing URLs remain real errors',async({request})=>{
   const robots=await request.get('/robots.txt',{maxRedirects:0});
   expect(robots.status()).toBe(200);expect(await robots.text()).toContain('Disallow: /');
