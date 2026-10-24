@@ -4,7 +4,7 @@ $projectRoot = Split-Path -Parent $PSScriptRoot
 $runtimeExecutable = Join-Path $projectRoot '.tools\node-v24.21.0-win-x64\node.exe'
 $tunnelExecutable = Join-Path $projectRoot '.tools\devtunnel\devtunnel.exe'
 if (-not (Test-Path -LiteralPath $runtimeExecutable)) { throw 'Run scripts/bootstrap-runtime.ps1 first.' }
-if (-not (Test-Path -LiteralPath $tunnelExecutable)) { throw 'The signed development tunnel CLI is missing. See DEVELOPMENT_TUNNEL.md.' }
+if (-not (Test-Path -LiteralPath $tunnelExecutable)) { throw 'Install the signed development tunnel CLI under .tools/devtunnel/ before using this wrapper.' }
 Push-Location $projectRoot
 try {
   $operation = if ($CheckOnly) { '--check' } else { '--repair' }

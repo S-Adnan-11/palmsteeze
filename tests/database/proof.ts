@@ -222,7 +222,7 @@ async function main() {
       assert.equal((await owner.query('select state from public.bookings where id=$1',[old.id])).rows[0].state,'expired');
       await release(b,next.id);
     });
-    console.log(`PASSED: ${completed} database proof groups. Google sign-in evidence is reported separately in TEST_REPORT.md.`);
+    console.log(`PASSED: ${completed} database proof groups. Google sign-in requires a separate interactive browser check.`);
   } catch(error) { failure = error; }
   {
     // Delete only artifacts belonging to identities and closure IDs created by this run.

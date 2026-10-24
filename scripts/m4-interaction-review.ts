@@ -43,7 +43,7 @@ async function main() {
       await finish(controls,'controls-'+mode);await context.close();
     }
   } finally {await browser.close();}
-  writeFileSync(join(output,'review.json'),JSON.stringify({at:new Date().toISOString(),kind:'Actual local production browser recordings; natural wheel input; visible scrollbar; trusted test-issued entrance clearance isolates UI. No provider or physical-device acceptance inferred.',viewports:[1440,960,390],motionBreakpoint:761,reducedMotionRespected:true,unrecoveredHistoricalItems:21,M4:'open',M5:'paused'},null,2),{flag:'wx'});
+  writeFileSync(join(output,'review.json'),JSON.stringify({at:new Date().toISOString(),kind:'Actual local production browser recordings; natural wheel input; visible scrollbar; trusted test-issued entrance clearance isolates UI. No provider or physical-device acceptance inferred.',viewports:[1440,960,390],motionBreakpoint:761,reducedMotionRespected:true},null,2),{flag:'wx'});
   console.log(output);
 }
 void main().catch(error=>{console.error(error.message);process.exitCode=1;});

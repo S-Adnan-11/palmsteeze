@@ -1,0 +1,27 @@
+name: Bug report
+description: Report a reproducible problem in the application or developer setup.
+body:
+  - type: markdown
+    attributes:
+      value: Use synthetic examples. Do not include account records, tokens, session traces, credentials or card details.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+      description: Describe the observed result and what you expected.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Include the route or command and a minimal, sanitized example.
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Browser/OS or Node/npm versions, and the commit if known.
+    validations:
+      required: true

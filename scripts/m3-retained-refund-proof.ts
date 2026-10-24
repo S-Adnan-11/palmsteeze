@@ -242,7 +242,7 @@ async function main(){
    }catch(error){await db.query('rollback');throw error;}
    for(const id of ids)assert.equal((await auth.auth.admin.deleteUser(id)).error,null);
    journal.phase=command==='cleanup'?'cleaned':'blocked-archived';save();
-   writeFileSync(evidencePath,JSON.stringify({startedAt:journal.startedAt,checks:journal.checks,observations:journal.observations,cleanup:'PASSED — only journal-owned booking/Auth fixtures removed after evidence; actual sandbox provider history retained; complete private history exported before cleanup',preexistingHistory:'PASSED',completion:command==='cleanup'?'PASSED':revised?'FAILED — provider replacement creation; revised safe exception acceptance separately PASSED':'FAILED — actual provider refuses replacement after failed card refund; M3 replacement proof stays open'},null,2)+'\n');
+   writeFileSync(evidencePath,JSON.stringify({startedAt:journal.startedAt,checks:journal.checks,observations:journal.observations,cleanup:'PASSED — only journal-owned booking/Auth fixtures removed after evidence; actual sandbox provider history retained; complete private history exported before cleanup',preexistingHistory:'PASSED',completion:command==='cleanup'?'PASSED':revised?'FAILED — provider replacement creation; permanent-refusal safety checks separately PASSED':'FAILED — actual provider refuses replacement after failed card refund; replacement remains failed with reimbursement outstanding'},null,2)+'\n');
    console.log('PASSED: collected evidence retained; only proof-owned database/Auth fixtures removed; all preexisting financial and manual histories preserved.');
   }else console.log(JSON.stringify(observation));
  }finally{await db.end();}

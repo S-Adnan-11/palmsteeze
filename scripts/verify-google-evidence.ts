@@ -27,7 +27,7 @@ async function main() {
       throw new ReadinessError('NOT RUN: stored Google/customer booking corroboration is incomplete; identities and records withheld.');
     }
     console.log('PASSED: read-only, certificate-verified PostgreSQL corroborates a Google identity, its stored booking and an ordinary Google customer allocation with consistent price snapshot. No identity, token or booking details logged.');
-    console.log('LIMIT: aggregate owner-level corroboration is not RLS or interactive browser proof; use the separate actual-role tests and owner-reported Google test for those checks. No data changed.');
+    console.log('LIMIT: aggregate owner-level corroboration is not RLS or interactive browser proof; use the separate actual-role tests and an interactive Google check for those checks. No data changed.');
   } finally {await client.end();}
 }
 main().catch(safeFailure);

@@ -1,0 +1,44 @@
+name: Validate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validate-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  application:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Install the project runtime
+        shell: pwsh
+        run: ./scripts/bootstrap-runtime.ps1
+      - name: Install locked dependencies
+        shell: pwsh
+        run: ./scripts/npm.ps1 ci
+      - name: Check types
+        shell: pwsh
+        run: ./scripts/npm.ps1 run typecheck
+      - name: Lint
+        shell: pwsh
+        run: ./scripts/npm.ps1 run lint
+      - name: Unit tests
+        shell: pwsh
+        run: ./scripts/npm.ps1 test
+      - name: Production build
+        shell: pwsh
+        run: ./scripts/npm.ps1 run build

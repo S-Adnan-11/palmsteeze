@@ -11,7 +11,7 @@ import { ReadinessError,safeFailure } from './lib/database';
 
 async function main() {
   const stripe=await verifiedStripeSandbox();const run=randomUUID();const origin='http://localhost:3101';
-  const evidence:Record<string,unknown>={checkedAt:new Date().toISOString(),currency:'ngn',depositKobo:80000,depositPercent:40,policyBasis:'owner-approved working default after NGN 600 rejection'};
+  const evidence:Record<string,unknown>={checkedAt:new Date().toISOString(),currency:'ngn',depositKobo:80000,depositPercent:40,policyBasis:'current 40% working default after sandbox minimum-amount rejection'};
   const types=new Set<string>();let signingSecret='';let checkout:Stripe.Checkout.Session|undefined;
   const server=createServer(async (request,response)=>{
     response.setHeader('Cache-Control','private, no-store');

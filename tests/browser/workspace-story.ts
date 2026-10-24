@@ -31,6 +31,6 @@ test('workspace video autoplays without controls and respects visibility and red
   await capture(page,'workspace-video-no-controls',info);
   await section.getByRole('link',{name:'Choose your rhythm'}).click();await expect(page).toHaveURL(/#plan$/);
   await expect(page.locator('#plan')).toBeInViewport();
-  record('video-no-controls-'+info.project.name+'.json',{kind:'Local browser with UI-only signed clearance',offscreenAndResume:true,reducedMotionPoster:true,noPlaybackControls:true,sectionAcceptance:'Owner accepted',accessibility:'No pause mechanism for continuing automatic motion; no full accessibility compliance claim'});
+  record('video-no-controls-'+info.project.name+'.json',{kind:'Local browser with UI-only signed clearance',offscreenAndResume:true,reducedMotionPoster:true,noPlaybackControls:true,accessibility:'No pause mechanism for continuing automatic motion; no full accessibility compliance claim'});
   await recording(page,'video-no-controls',info);
 });

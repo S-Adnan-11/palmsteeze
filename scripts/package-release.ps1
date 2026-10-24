@@ -7,7 +7,7 @@ try {
   & git diff --quiet HEAD -- src public scripts supabase package.json package-lock.json next.config.ts vercel.json .vercelignore
   if($LASTEXITCODE -ne 0){throw 'Commit reviewed deployment inputs before packaging.'}
   $palmTracked=@(& git ls-tree -r --name-only HEAD)
-  $palmForbidden=@($palmTracked | Where-Object { $_ -match '^(docs/|reviews/|\.tools/|\.env(?!\.example$))|(^|/)(brief_master|full_master)\.md$' })
+  $palmForbidden=@($palmTracked | Where-Object { $_ -match '^(docs/|reviews/|project-guides/|palmsteeze-private/|\.tools/|\.env(?!\.example$))|(^|/)(brief_master|full_master|brief_agent|full_agent)\.md$' })
   if($palmForbidden.Count){throw 'Private content found in committed archive; inspect locally.'}
   $palmRelease=Join-Path $palmRoot ".tools\releases\$palmRevision"
   $palmArchive=Join-Path $palmRoot ".tools\releases\$palmRevision.zip"

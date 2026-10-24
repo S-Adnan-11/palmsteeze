@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {writeFileSync,mkdirSync,existsSync,readFileSync} from 'node:fs';
+import {writeFileSync,mkdirSync} from 'node:fs';
 import {verifyProject,connectDatabase,safeFailure} from './lib/database';
 import {verifiedStripeSandbox} from './lib/stripe-sandbox';
 async function main(){
@@ -17,11 +17,8 @@ async function main(){
   for(const p of payments){const pi=await stripe.paymentIntents.retrieve(p.payment_intent_id);assert.equal(pi.livemode,false);assert.equal(pi.currency,'ngn');assert.equal(pi.amount_received,Number(p.amount_kobo));verifiedCollected++;
    const refunds=await stripe.refunds.list({payment_intent:pi.id,limit:100});assert.equal(refunds.has_more,false);if(refunds.data.filter(r=>r.status==='succeeded').reduce((n,r)=>n+r.amount,0)===pi.amount_received) fullyRefunded++;
   }
-  const observations=['customer payment and approved refund','rejected refund reflected to customer','audit history','closure blocking customer booking','signed-out admin access','identity attribution','repeat requests after rejection','higher/full payment followed by refund'];
-  const revisedPath='docs/evidence/m3-revised-acceptance.json';const revised=existsSync(revisedPath)?JSON.parse(readFileSync(revisedPath,'utf8')):null;
-  const providerStatus=revised?.status?.startsWith('PASSED')&&revised?.newReplacementCreation?.startsWith('FAILED')?'FAILED — actual provider permanently refused replacement; owner-approved safe exception handling separately PASSED (m3-revised-acceptance.json)':'NOT RUN — separate proof remains open';
-  const evidence={checkedAt:new Date().toISOString(),ownerObserved:Object.fromEntries(observations.map(x=>[x,'PASSED — owner reported; no claim of an independently observed walkthrough'])),recordCorroboration:{...stats,authoritative_sandbox_collected_records:verifiedCollected,authoritative_fully_refunded_records:fullyRefunded},limits:'Records corroborate collected/refunded payments, decisions, audit and closures. They do not independently establish the exact UI clicks, rejected-request display, closure-block attempt or sign-out observation.',actualProviderFailedRefundReplacement:providerStatus};
-  mkdirSync('docs/evidence',{recursive:true});writeFileSync('docs/evidence/m3-owner-acceptance.json',JSON.stringify(evidence,null,2)+'\n');console.log('PASSED: owner acceptance recorded; read-only record/provider corroboration saved without customer identities.');
+  const evidence={checkedAt:new Date().toISOString(),recordCorroboration:{...stats,authoritative_sandbox_collected_records:verifiedCollected,authoritative_fully_refunded_records:fullyRefunded},limits:'Aggregate read-only database/provider corroboration. It does not establish an independently observed browser walkthrough.'};
+  mkdirSync('docs/evidence',{recursive:true});writeFileSync('docs/evidence/m3-owner-acceptance.json',JSON.stringify(evidence,null,2)+'\n');console.log('PASSED: aggregate database/provider corroboration saved without customer identities.');
  }finally{await db.end();}
 }
 main().catch(safeFailure);

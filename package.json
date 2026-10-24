@@ -82,5 +82,15 @@
     "tsx": "4.23.15",
     "typescript": "6.0.3",
     "typescript-eslint": "8.71.0"
+  },
+  "description": "A Lagos coworking booking demo with transactional reservations and Stripe sandbox recovery.",
+  "license": "MIT",
+  "homepage": "https://palmsteeze.devs.surf",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/S-Adnan-11/palmsteeze.git"
+  },
+  "bugs": {
+    "url": "https://github.com/S-Adnan-11/palmsteeze/issues"
   }
 }
