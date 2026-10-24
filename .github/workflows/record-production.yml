@@ -1,0 +1,47 @@
+name: Record production deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      deployed_revision:
+        description: Full commit SHA currently serving the canonical site in Vercel Production
+        required: true
+        type: string
+      vercel_deployment_id:
+        description: Matching READY Production deployment ID from Vercel
+        required: true
+        type: string
+      production_verified:
+        description: I verified this SHA and deployment ID against the current Vercel Production release
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  deployments: write
+
+concurrency:
+  group: record-production
+  cancel-in-progress: false
+
+jobs:
+  record:
+    if: github.ref == 'refs/heads/main'
+    runs-on: windows-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Install the project runtime
+        shell: pwsh
+        run: ./scripts/bootstrap-runtime.ps1
+      - name: Record the existing release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DEPLOYED_REVISION: ${{ inputs.deployed_revision }}
+          VERCEL_DEPLOYMENT_ID: ${{ inputs.vercel_deployment_id }}
+          PRODUCTION_VERIFIED: ${{ inputs.production_verified }}
+        run: ./.tools/node-v24.21.0-win-x64/node.exe scripts/record-production-deployment.ts

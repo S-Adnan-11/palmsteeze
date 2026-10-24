@@ -24,6 +24,14 @@ The script identifies the committed SHA, checks deployment inputs and creates a 
 
 The pinned `scripts/vercel.ps1` wrapper runs the CLI without a global installation. Inspect project/environment and SHA before publishing. Packaging or pushing source does not deploy.
 
+## Show a release in GitHub
+
+After a manual Vercel release, use **Actions → Record production deployment → Run workflow**, with `main` selected. Copy the full deployed commit SHA and the matching READY Production deployment ID from Vercel, confirm that both identify the release currently serving the canonical domain, then run it.
+
+The [workflow](../.github/workflows/record-production.yml) checks canonical HTTPS health and that the supplied SHA belongs to main's history, then records that existing release in GitHub's `production` environment. It uses the supplied deployed SHA, which can differ from the workflow's current commit. Repeating the same SHA/provider ID reuses its record.
+
+This is manual release reporting. A healthy homepage alone cannot prove its source SHA: verifying that mapping in Vercel is a required operator step. The workflow neither publishes the site nor changes Vercel configuration, and needs no Vercel credential or additional repository secret. The normal validation workflow remains separate.
+
 ## Verify and recover
 
 Inspect the completed deployment's source SHA, build status, domain and HTTPS. `hosting:inspect` and `hosting:smoke` take an explicit `--origin`; PowerShell npm invocations use the quoted `'--'` separator. Review smoke tests before use; they include controlled negative requests and preference cookies.
