@@ -1,3 +1,5 @@
+import {writeEvidence} from '../../scripts/lib/evidence';
+import {fixtureCheckout,fixtureReservationQuery} from './reservation-fixtures';
 import assert from 'node:assert/strict';
 import { randomBytes,randomUUID } from 'node:crypto';
 import { mkdirSync,writeFileSync } from 'node:fs';
@@ -88,7 +90,7 @@ async function main() {
    const q=await expected(ids['OPEN-09']);let waiting=0;let release:()=>void=()=>{};const barrier=new Promise<void>(resolve=>{release=resolve;});
    const results=await Promise.allSettled(peers.map((peer,i)=>role(peer,identities[i],async()=>{
     if(++waiting===2) release();await barrier;
-    const value=await peer.query('select public.begin_checkout($1,$2,$3,$4,$5) as detail',[ids['OPEN-09'],interval.starts_at,interval.ends_at,randomUUID(),q]);
+    const value=await fixtureReservationQuery(peer,'select public.begin_checkout($1,$2,$3,$4,$5) as detail',[ids['OPEN-09'],interval.starts_at,interval.ends_at,randomUUID(),q]);
     await peer.query('select pg_sleep(0.25)');return value.rows[0].detail;
    })));
    const winners=results.filter(r=>r.status==='fulfilled');assert.equal(winners.length,1);
@@ -101,14 +103,14 @@ async function main() {
   });
   await check('changed reviewed quote rolls back allocation payment and job',async()=>{
    const requestID=randomUUID();const q=await expected(ids['OPEN-10']);
-   const result=await identities[0].api.rpc('begin_checkout',{p_resource:ids['OPEN-10'],p_start:interval.starts_at,p_end:interval.ends_at,p_request:requestID,p_expected:{...q,deposit_kobo:1}});
+   const result=await fixtureCheckout(identities[0].api,{p_resource:ids['OPEN-10'],p_start:interval.starts_at,p_end:interval.ends_at,p_request:requestID,p_expected:{...q,deposit_kobo:1}});
    assert.equal(result.error?.code,'P0001');assert.equal((await db.query('select count(*)::int as n from public.bookings where request_id=$1',[requestID])).rows[0].n,0);
   });
   await check('real Stripe response loss retains inventory and retries one idempotent Session',async()=>{
    const q=await expected(ids['OPEN-08']);const requestID=randomUUID();const args={p_resource:ids['OPEN-08'],p_start:interval.starts_at,p_end:interval.ends_at,p_request:requestID,p_expected:q};
-   const start=await identities[0].api.rpc('begin_checkout',args);assert.equal(start.error,null);
+   const start=await fixtureCheckout(identities[0].api,args);assert.equal(start.error,null);
    bookingID=start.data.booking.id;attemptID=start.data.payment.id;assert.equal(start.data.payment.amount_kobo,80000);
-   const again=await identities[0].api.rpc('begin_checkout',args);assert.equal(again.data.booking.id,bookingID);assert.equal(again.data.payment.id,attemptID);
+   const again=await fixtureCheckout(identities[0].api,args);assert.equal(again.data.booking.id,bookingID);assert.equal(again.data.payment.id,attemptID);
    const losingResponse:typeof fetch=async(input,init)=>{
     const response=await fetch(input,init);
     if(String(input)==='https://api.stripe.com/v1/checkout/sessions' && init?.method==='POST' && response.ok) {
@@ -144,7 +146,7 @@ async function main() {
    assert.equal((await invoke(bookingID)).status,200);
   });
   await check('definitive first-dispatch rejection releases only known unpaid setup',async()=>{
-   const result=await identities[1].api.rpc('begin_checkout',{p_resource:ids['OPEN-10'],p_start:interval.starts_at,p_end:interval.ends_at,p_request:randomUUID(),p_expected:await expected(ids['OPEN-10'])});
+   const result=await fixtureCheckout(identities[1].api,{p_resource:ids['OPEN-10'],p_start:interval.starts_at,p_end:interval.ends_at,p_request:randomUUID(),p_expected:await expected(ids['OPEN-10'])});
    assert.equal(result.error,null);const id=result.data.booking.id;
    const rejected:typeof fetch=async(input,init)=>String(input)==='https://api.stripe.com/v1/checkout/sessions'&&init?.method==='POST'
     ? Response.json({error:{type:'invalid_request_error',param:'allowed_payment_method_types'}},{status:400}):fetch(input,init);
@@ -153,7 +155,7 @@ async function main() {
    assert.deepEqual(row,{state:'expired',active:false,payment:'creation_failed',session_id:null});
   });
   await check('expired idempotency window stops new Sessions and retains uncertain allocation',async()=>{
-   const result=await identities[1].api.rpc('begin_checkout',{p_resource:ids['OPEN-10'],p_start:interval.starts_at,p_end:interval.ends_at,p_request:randomUUID(),p_expected:await expected(ids['OPEN-10'])});
+   const result=await fixtureCheckout(identities[1].api,{p_resource:ids['OPEN-10'],p_start:interval.starts_at,p_end:interval.ends_at,p_request:randomUUID(),p_expected:await expected(ids['OPEN-10'])});
    assert.equal(result.error,null);const id=result.data.booking.id;
    await db.query("update public.payment_attempts set created_at=now()-interval '25 hours' where booking_id=$1",[id]);
    let providerCalls=0;const observed:typeof fetch=async(input,init)=>{if(String(input).startsWith('https://api.stripe.com/')) providerCalls++;return fetch(input,init);};
@@ -204,7 +206,7 @@ async function main() {
   await db.query('delete from private.app_roles where user_id=any($1::uuid[])',[userIDs]);await db.query('commit');
   for(const user of identities) assert.equal((await admin.auth.admin.deleteUser(user.id)).error,null);
   for(const peer of peers) await peer.end();await db.end();
-  mkdirSync('docs/evidence',{recursive:true});writeFileSync('docs/evidence/m2-payment-database.json',JSON.stringify(evidence,null,2)+'\n');
+  mkdirSync('docs/evidence',{recursive:true});writeEvidence('m2-payment-database.json',evidence);
  }
 }
 main().catch(safeFailure);

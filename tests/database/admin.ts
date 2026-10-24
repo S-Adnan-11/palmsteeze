@@ -1,3 +1,5 @@
+import {writeEvidence} from '../../scripts/lib/evidence';
+import {fixtureCheckout} from './reservation-fixtures';
 import assert from 'node:assert/strict';
 import { randomBytes,randomUUID } from 'node:crypto';
 import { mkdirSync,readFileSync,writeFileSync } from 'node:fs';
@@ -36,7 +38,7 @@ async function main() {
   });
   const quote=(await users[0].api.rpc('quote_resource',{p_resource:resource.id,p_start:interval.starts_at,p_end:interval.ends_at})).data;
   const expected=Object.fromEntries(['hourly_kobo','total_kobo','deposit_percent','deposit_kobo','balance_kobo'].map(k=>[k,quote[k]]));
-  const created=await users[0].api.rpc('begin_checkout',{p_resource:resource.id,p_start:interval.starts_at,p_end:interval.ends_at,p_request:randomUUID(),p_expected:expected});assert.equal(created.error,null);const booking=created.data.booking;const attempt=created.data.payment;
+  const created=await fixtureCheckout(users[0].api,{p_resource:resource.id,p_start:interval.starts_at,p_end:interval.ends_at,p_request:randomUUID(),p_expected:expected});assert.equal(created.error,null);const booking=created.data.booking;const attempt=created.data.payment;
   await db.query('begin');await db.query("update public.bookings set state='confirmed' where id=$1",[booking.id]);await db.query("update public.payment_attempts set state='paid',payment_intent_id=$2 where id=$1",[attempt.id,`pi_fixture${randomUUID().replaceAll('-','')}`]);await db.query("update private.payment_jobs set lease_token=$2,lease_until=now()+interval '10 minutes' where attempt_id=$1",[attempt.id,randomUUID()]);await db.query('commit');
   const cancellation=(await users[0].api.rpc('request_cancellation',{p_booking:booking.id,p_reason:'Isolated database fixture request'})).data;
   await check('closures resource archives and reduced hours report affected booking without cancellation',async()=>{
@@ -89,7 +91,7 @@ async function main() {
   await db.query('delete from public.payment_attempts where owner_id=any($1::uuid[])',[ids]);await db.query('delete from public.cancellation_requests where owner_id=any($1::uuid[])',[ids]);
   await db.query('delete from public.allocations where booking_id in(select id from public.bookings where owner_id=any($1::uuid[]))',[ids]);await db.query('delete from public.bookings where owner_id=any($1::uuid[])',[ids]);await db.query('delete from private.app_roles where user_id=any($1::uuid[])',[ids]);await db.query('commit');
   for(const u of users) assert.equal((await auth.auth.admin.deleteUser(u.id)).error,null);for(const peer of peers) await peer.end();await db.end();
-  mkdirSync('docs/evidence',{recursive:true});writeFileSync('docs/evidence/m3-database.json',JSON.stringify(evidence,null,2)+'\n');
+  mkdirSync('docs/evidence',{recursive:true});writeEvidence('m3-database.json',evidence);
  }
 }
 main().catch(safeFailure);

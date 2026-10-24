@@ -1,10 +1,11 @@
 // One portable module serves the deployed Edge function and legitimate backend
 // fault-injection tests. No test endpoint or authentication bypass is exposed.
+import {paymentReturnOrigins,developmentOrigins} from '../_shared/application-origins.ts';
 declare const Deno:{env:{get(name:string):string|undefined};serve(handler:(request:Request)=>Promise<Response>):void};
 export type PaymentConfig={supabaseURL:string;serviceKey:string;stripeKey:string;workerToken:string;webhookSecret:string;origin:string};
 type Attempt={id:string;booking_id:string;amount_kobo:number;currency:string;state:string;session_id:string|null;
   payment_intent_id:string|null;refund_id:string|null;cancel_requested:boolean;requested_expires_at:string;created_at:string;refund_started_at:string|null;refund_generation:number;refund_retry_requested:boolean;
-  refund_amount_kobo?:number;collected_kobo:number;refunded_kobo:number;pending_refund_kobo?:number};
+  refund_amount_kobo?:number;collected_kobo:number;refunded_kobo:number;pending_refund_kobo?:number;return_origin?:string|null};
 type Work={attempt:Attempt;lease:string;dispatch_attempt:number};
 type ProviderObject={id:string;livemode:boolean;amount_total?:number;amount?:number;amount_received?:number;currency:string;
   status:string;payment_status?:string;mode?:string;metadata?:Record<string,string>;payment_method_types?:string[];
@@ -31,7 +32,17 @@ function check(condition:unknown):asserts condition {if(!condition) throw new Wo
 export function paymentHandler(config:PaymentConfig,fetcher:typeof fetch=fetch) {
   check(/^https:\/\/[a-z0-9]{20}\.supabase\.co$/.test(config.supabaseURL));
   check(/^(?:sk_test_|rk_test_|rkcs_test_)/.test(config.stripeKey));
-  check(config.origin==='http://localhost:3000'); // M2 development only; deployment is excluded.
+  // Historical attempts retain the operator-configured origin. New attempts
+  // carry the signed, database-persisted origin, including scheduled recovery.
+  const origin=new URL(config.origin);
+  check(origin.origin===config.origin && !origin.username && !origin.password
+    && (config.origin===developmentOrigins[0] || (origin.protocol==='https:'
+      && !['localhost','127.0.0.1'].includes(origin.hostname))));
+  const checkoutOrigin=(attempt:Attempt)=>{
+    const value=attempt.return_origin??config.origin;
+    check(paymentReturnOrigins(config.origin).includes(value));
+    return value;
+  };
   const rpc=async(name:string,body:unknown)=>{
     const response=await fetcher(`${config.supabaseURL}/rest/v1/rpc/${name}`,{method:'POST',
       headers:{apikey:config.serviceKey,Authorization:`Bearer ${config.serviceKey}`,'Content-Type':'application/json'},
@@ -129,7 +140,7 @@ export function paymentHandler(config:PaymentConfig,fetcher:typeof fetch=fetch) 
         const body=new URLSearchParams({mode:'payment',ui_mode:'hosted_page','allowed_payment_method_types[0]':'card',
           'adaptive_pricing[enabled]':'false','line_items[0][quantity]':'1','line_items[0][price_data][currency]':a.currency,
           'line_items[0][price_data][unit_amount]':String(a.amount_kobo),'line_items[0][price_data][product_data][name]':'PalmSteeze booking payment - sandbox',
-          success_url:`${config.origin}/booking/${a.booking_id}?checkout=returned`,cancel_url:`${config.origin}/booking/${a.booking_id}?checkout=cancelled`,
+          success_url:`${checkoutOrigin(a)}/booking/${a.booking_id}?checkout=returned`,cancel_url:`${checkoutOrigin(a)}/booking/${a.booking_id}?checkout=cancelled`,
           expires_at:String(Math.floor(Date.parse(a.requested_expires_at)/1000)),'expand[0]':'payment_intent'});
         metadata(body,a);metadata(body,a,'payment_intent_data[metadata]');
         try {session=await stripe('checkout/sessions',body,`palmsteeze-checkout-${a.id}`);}

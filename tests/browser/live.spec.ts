@@ -2,26 +2,28 @@ import { test,expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { mkdirSync } from 'node:fs';
 import { initialBookingDate,intervalFromSelection } from '../../src/lib/domain';
+import {selectChoice} from './select-choice';
+import {chooseDate} from './choose-date';
 
 test('live PostgreSQL catalogue, availability and authoritative quote reach the customer browser',async ({page,request},info) => {
   const errors: string[] = [];
   page.on('pageerror',(error) => errors.push(error.name));
   await page.goto('/');
-  await expect(page.getByText('Connected inventory · Check your date and time for live availability.')).toBeVisible();
+  await expect(page.getByText('Choose your space. Check your date and hours above.')).toBeVisible();
   await expect(page.getByText('Preview inventory · Sample prices. Live availability is not connected.')).toHaveCount(0);
   await expect(page.locator('.space-card')).toHaveCount(5);
-  await expect(page.locator('#resource option')).toHaveCount(27);
+  await page.getByLabel('Your space',{exact:true}).click();await expect(page.getByRole('option')).toHaveCount(16);await page.keyboard.press('Escape');
   await page.getByRole('button',{name:'Meeting rooms',exact:true}).click();
   await expect(page.locator('.space-card')).toHaveCount(3);
   await page.getByRole('link',{name:'Plan a visit for Cove'}).click();
-  const resource = await page.getByLabel('Your space',{exact:true}).inputValue();
+  const resource = (await page.getByRole('group',{name:'Selected room'}).getAttribute('data-resource-id'))!;
   expect(resource).toMatch(/^[a-f0-9-]{36}$/);
   expect(resource).not.toBe('00000000-0000-4000-8000-000000000025');
   const date = initialBookingDate(new Date(Date.now()+86400000));
   const interval = intervalFromSelection(date,10,2);
-  await page.getByLabel('Date',{exact:true}).fill(date);
-  await page.getByLabel('Start time · WAT',{exact:true}).selectOption('10');
-  await page.getByLabel('Duration',{exact:true}).selectOption('2');
+  await chooseDate(page,date);
+  await selectChoice(page,'Start time · WAT','10');
+  await selectChoice(page,'Duration','2');
   const params = new URLSearchParams({resource,start:interval.starts_at,end:interval.ends_at});
   const [quoted,available] = await Promise.all([request.get(`/api/quote?${params}`),request.get(`/api/availability?${params}`)]);
   expect(quoted.status()).toBe(200);expect(available.status()).toBe(200);
@@ -32,11 +34,11 @@ test('live PostgreSQL catalogue, availability and authoritative quote reach the 
   expect(availability.availability.every((row:Record<string,unknown>) => Object.keys(row).sort().join(',') === 'available,resource_id')).toBe(true);
   expect(availability.availability.find((row:{resource_id:string}) => row.resource_id === resource)).toEqual({resource_id:resource,available:true});
   await page.getByRole('button',{name:'Check availability',exact:true}).click();
-  await expect(page.getByLabel('Live server quote')).toContainText('₦16,000');
-  await expect(page.getByLabel('Live server quote')).toContainText('₦6,400');
+  await expect(page.getByLabel('Current visit quote')).toContainText('₦16,000');
+  await expect(page.getByLabel('Current visit quote')).toContainText('₦6,400');
   await expect(page.locator('.booking-status')).toHaveAttribute('data-available','true');
-  await expect(page.locator('.booking-status')).toContainText('Available for these hours.');
-  await expect(page.getByText('Hours and rates are proposed working defaults;', {exact:false})).toBeVisible();
+  await expect(page.locator('.booking-status')).toContainText('Available when checked.');
+  await expect(page.getByText('Fictional venue · test payments only', {exact:false}).first()).toBeVisible();
   await page.getByRole('button',{name:'All spaces',exact:true}).click();
   await expect(page.locator('.space-card')).toHaveCount(5);
   await page.getByRole('link',{name:'Skip to content'}).focus();
@@ -53,7 +55,7 @@ test('live PostgreSQL catalogue, availability and authoritative quote reach the 
 });
 
 test('configured APIs enforce anonymous mutation restrictions and invalid intervals',async ({request}) => {
-  const headers = {Origin:'http://127.0.0.1:3000'};
+  const headers = {Origin:'http://localhost:3000',Host:'localhost:3000'};
   expect((await request.post('/api/holds',{headers,data:{ownerId:'forged',role:'admin',price:1}})).status()).toBe(401);
   expect((await request.get('/api/holds')).status()).toBe(401);
   expect((await request.delete('/api/holds/00000000-0000-4000-8000-000000000001',{headers})).status()).toBe(401);

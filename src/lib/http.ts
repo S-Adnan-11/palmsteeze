@@ -1,11 +1,8 @@
 import 'server-only';
+import { sameAppOrigin } from '@/lib/deployment';
 export function jsonError(message: string, status: number) { return Response.json({error:message},{status}); }
 export function sameOrigin(request: Request) {
-  // Next may normalize request.url to localhost internally; Host retains the incoming authority.
-  const url = new URL(request.url);
-  const host = request.headers.get('host') || url.host;
-  try { return request.headers.get('origin') === new URL(`${url.protocol}//${host}`).origin; }
-  catch { return false; }
+  return sameAppOrigin(request,process.env);
 }
 export function databaseError(code?: string) {
   if (code === '23P01') return jsonError('That space was just taken or blocked. Choose another space or time.',409);

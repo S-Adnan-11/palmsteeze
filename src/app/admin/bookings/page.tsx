@@ -1,9 +1,7 @@
-import Link from 'next/link';
-import { adminSnapshot,venueTime,shortID } from '@/lib/admin';
-import { formatMoney } from '@/lib/domain';
+import {adminSnapshot} from '@/lib/admin';
+import {adminBookingRows} from '@/lib/admin-presentation';
+import {BookingsList} from '@/components/admin-presentation';
 export default async function AdminBookings() {
- const s=await adminSnapshot('/admin/bookings');return <><h1>Bookings & <em>decisions.</em></h1><p>Latest 100 bookings. Historical price snapshots are preserved.</p><div className="admin-list">
- {s.bookings.map(b=>{const p=s.payments.find(p=>p.booking_id===b.id);const c=s.cancellations.find(c=>c.booking_id===b.id);return <article className="admin-card" key={b.id}><h2><Link href={`/admin/bookings/${b.id}`}>{s.resources.find(r=>r.id===b.resource_id)?.name} · {shortID(b.id)}</Link></h2>
- <p>{venueTime(b.starts_at)} · Booking: {b.state}</p><p>Deposit snapshot: {formatMoney(b.deposit_kobo)} ({b.deposit_percent}%) · Payment: {p?.state||'legacy unpaid'} · Refund: {p?.refund_state||'none'}</p><p>Cancellation: {c?.state||'none'}</p></article>;})}
- {s.bookings.length===0&&<p>No bookings yet.</p>}</div></>;
+  const s=await adminSnapshot('/admin/bookings');
+  return <><div className="operation-heading"><div><p className="eyebrow">Reservations & decisions</p><h1>Every visit, in view.</h1><p>Latest 100 bookings</p></div><span className="environment-label">{s.bookings.length} loaded bookings</span></div><section className="operation-panel"><BookingsList rows={adminBookingRows(s)}/></section></>;
 }

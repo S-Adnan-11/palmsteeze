@@ -1,3 +1,4 @@
+import {requestAppOrigin} from '@/lib/deployment';
 import { cookies } from 'next/headers';
 import { sessionClient } from '@/lib/supabase/server';
 import { authCookieOptions,oauthDestinationCookie } from '@/lib/auth/config';
@@ -5,11 +6,12 @@ import { safeDestination } from '@/lib/auth/destinations';
 import { authRedirect } from '@/lib/auth/responses';
 
 export async function GET(request:Request) {
+  const origin=requestAppOrigin(request,process.env);
   const params = new URL(request.url).searchParams;const store = await cookies();
   const saved = store.get(oauthDestinationCookie)?.value;
   const next = saved ? safeDestination(saved) : '/account';
-  store.set(oauthDestinationCookie,'',{...authCookieOptions(),maxAge:0});
-  const recover = (message:string) => authRedirect(`/login?message=${message}&next=${encodeURIComponent(next || '/account')}`);
+  store.set(oauthDestinationCookie,'',{...authCookieOptions(origin),maxAge:0});
+  const recover = (message:string) => authRedirect(`/login?message=${message}&next=${encodeURIComponent(next || '/account')}`,origin);
   // No callback-provided destination, identity or error text is trusted/reflected.
   if (!next || params.has('next')) return recover('invalid-callback');
   if (params.has('error')) return recover('cancelled');
@@ -21,6 +23,6 @@ export async function GET(request:Request) {
     if (result.error) return recover('invalid-callback');
     const {data,error} = await client.auth.getUser();
     if (error || !data.user) return recover('session-ended');
-    return authRedirect(next);
+    return authRedirect(next,origin);
   } catch {return recover('invalid-callback');}
 }

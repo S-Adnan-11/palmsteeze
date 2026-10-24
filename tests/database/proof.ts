@@ -1,3 +1,4 @@
+import {fixtureReservationQuery} from './reservation-fixtures';
 import assert from 'node:assert/strict';
 import { randomUUID,randomBytes } from 'node:crypto';
 import { readFileSync } from 'node:fs';
@@ -25,7 +26,7 @@ async function asRole<T>(run: Run,fn:(client:Client) => Promise<T>,rollback = fa
 }
 const hold = (run:Run,resource:string,start:string,end:string,request=randomUUID(),race?: {ready:() => Promise<void>}) => asRole(run,async (c) => {
   if (race) await race.ready();
-  const r = await c.query('select public.create_hold($1,$2,$3,$4) as booking',[resource,start,end,request]);
+  const r = await fixtureReservationQuery(c,'select public.create_hold($1,$2,$3,$4) as booking',[resource,start,end,request]);
   if (race) await c.query('select pg_sleep(0.3)'); // keep the winning allocation uncommitted while its competitor reaches the constraint
   return r.rows[0].booking as Booking;
 });
@@ -145,14 +146,14 @@ async function main() {
     await check('transaction rollback removes both booking and allocation',async () => {
       const request = randomUUID();
       await asRole(a,async (c) => {
-        await c.query('select public.create_hold($1,$2,$3,$4)',[ids['OPEN-03'],at(10),at(11),request]);
+        await fixtureReservationQuery(c,'select public.create_hold($1,$2,$3,$4)',[ids['OPEN-03'],at(10),at(11),request]);
       },true);
       assert.equal((await owner.query('select count(*)::int as n from public.bookings where request_id=$1',[request])).rows[0].n,0);
       const fresh = await hold(b,ids['OPEN-03'],at(10),at(11));await release(b,fresh.id);
     });
     await check('rate and deposit-policy changes preserve the existing immutable quote snapshot',async () => {
       await asRole(a,async (c) => {
-        const result = await c.query('select public.create_hold($1,$2,$3,$4) as b',[ids['OPEN-04'],at(10),at(12),randomUUID()]);
+        const result = await fixtureReservationQuery(c,'select public.create_hold($1,$2,$3,$4) as b',[ids['OPEN-04'],at(10),at(12),randomUUID()]);
         const original = result.rows[0].b as Booking;
         assert.equal(original.owner_id,identities[0].id);
         assert.equal(original.hourly_kobo,200000);assert.equal(original.total_kobo,400000);

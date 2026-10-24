@@ -1,0 +1,2 @@
+# Migration checksums describe these exact LF bytes on every checkout.
+supabase/migrations/*.sql text eol=lf

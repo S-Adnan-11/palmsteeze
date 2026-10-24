@@ -1,18 +1,15 @@
 import 'server-only';
+import { configuredAppOrigin,sameAppOrigin,validatedAppOrigin } from '@/lib/deployment';
 
 export function appOrigin() {
-  const value = process.env.APP_ORIGIN || 'http://localhost:3000';
-  const url = new URL(value);
-  if (url.origin !== value || url.username || url.password || (url.protocol !== 'https:'
-      && !(url.protocol === 'http:' && ['localhost','127.0.0.1'].includes(url.hostname)))) throw new Error('Invalid APP_ORIGIN');
-  return value;
+  return configuredAppOrigin(process.env);
 }
-export function authCookieOptions() {
-  return {path:'/',httpOnly:true,sameSite:'lax' as const,secure:appOrigin().startsWith('https:')};
+export function authCookieOptions(origin=appOrigin()) {
+  return {path:'/',httpOnly:true,sameSite:'lax' as const,secure:validatedAppOrigin(origin,process.env).startsWith('https:')};
 }
 export const oauthDestinationCookie = 'ps-oauth-next';
 export function authSameOrigin(request:Request) {
-  return request.headers.get('origin') === appOrigin() && request.headers.get('host') === new URL(appOrigin()).host;
+  return sameAppOrigin(request,process.env);
 }
 export function privateHeaders(headers = new Headers()) {
   headers.set('Cache-Control','private, no-store, no-cache, max-age=0, must-revalidate');

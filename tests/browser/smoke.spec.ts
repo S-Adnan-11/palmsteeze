@@ -1,27 +1,28 @@
 import { test,expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { mkdirSync } from 'node:fs';
+import {selectChoice} from './select-choice';
 
 test('customer preview: filters, quote, keyboard, mobile layout and accessibility',async ({page},info) => {
   const errors: string[] = [];
   page.on('pageerror',(error) => errors.push(error.name));
   await page.goto('/');
-  await expect(page.getByRole('heading',{level:1})).toHaveText('Find your space.Set your pace.');
+  await expect(page.getByRole('heading',{level:1})).toHaveText('Find yourwork rhythm.');
   await expect(page.getByText('Preview inventory · Sample prices. Live availability is not connected.')).toBeVisible();
   await expect(page.locator('.space-card')).toHaveCount(5);
   await page.getByRole('button',{name:'Meeting rooms',exact:true}).click();
   await expect(page.locator('.space-card')).toHaveCount(3);
   await page.getByRole('link',{name:'Plan a visit for Cove'}).click();
-  await expect(page.getByLabel('Your space',{exact:true})).toHaveValue('00000000-0000-4000-8000-000000000025');
-  await page.getByLabel('Duration',{exact:true}).selectOption('2');
-  await expect(page.getByLabel('Sample price estimate')).toContainText('₦16,000');
-  await expect(page.getByLabel('Sample price estimate')).toContainText('₦6,400');
+  await expect(page.getByRole('group',{name:'Selected room'})).toHaveAttribute('data-resource-id','00000000-0000-4000-8000-000000000025');
+  await selectChoice(page,'Duration','2');
+  await expect(page.getByLabel('Estimated visit price')).toContainText('₦16,000');
+  await expect(page.getByLabel('Estimated visit price')).toContainText('₦6,400');
   await page.getByRole('button',{name:'Preview your visit'}).click();
   await expect(page.locator('.booking-status')).toContainText('Live availability and reservations are not connected yet.');
   await page.getByRole('button',{name:'All spaces',exact:true}).click();
   await expect(page.locator('.space-card')).toHaveCount(5);
-  await page.getByLabel('Your space',{exact:true}).selectOption('00000000-0000-4000-8000-000000000001');
-  await page.getByLabel('Duration',{exact:true}).selectOption('1');
+  await page.getByRole('radio',{name:/Open desks/}).check();
+  await selectChoice(page,'Duration','1');
   await page.evaluate(() => window.scrollTo(0,0));
   await page.keyboard.press('Control+Home');
   await page.getByRole('link',{name:'Skip to content'}).focus();
@@ -39,7 +40,7 @@ test('customer preview: filters, quote, keyboard, mobile layout and accessibilit
 });
 
 test('unauthenticated APIs cannot allocate, release, inspect private history or close inventory',async ({request}) => {
-  const headers = {Origin:'http://127.0.0.1:3000'};
+  const headers = {Origin:'http://localhost:3000'};
   const hold = await request.post('/api/holds',{headers,data:{ownerId:'forged',role:'admin',price:1}});
   expect(hold.status()).toBe(401);
   expect((await request.get('/api/holds')).status()).toBe(401);

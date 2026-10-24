@@ -6,7 +6,7 @@ test('configured provider failure displays unavailable inventory without simulat
   await page.goto('/');
   await expect(page.getByText('Workspace service unavailable · Please try again later.')).toBeVisible();
   await expect(page.locator('.space-card')).toHaveCount(0);
-  await expect(page.locator('#resource option')).toHaveCount(0);
+  await expect(page.getByLabel('Your space',{exact:true})).toBeDisabled();
   await expect(page.getByRole('button',{name:'Preview your visit',exact:true})).toBeDisabled();
   await expect(page.getByText('Preview inventory · Sample prices. Live availability is not connected.')).toHaveCount(0);
   const response = await request.get('/api/availability?start=2026-10-05T09:00:00Z&end=2026-10-05T10:00:00Z');

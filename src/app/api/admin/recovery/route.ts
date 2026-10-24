@@ -1,5 +1,6 @@
 import { authenticatedClient } from '@/lib/supabase/server';
 import { recoverBooking } from '@/lib/payments';
+export const maxDuration = 60;
 import { sameOrigin,jsonError } from '@/lib/http';
 import { exactObject,uuidPattern } from '@/lib/domain';
 export async function POST(request:Request) {
